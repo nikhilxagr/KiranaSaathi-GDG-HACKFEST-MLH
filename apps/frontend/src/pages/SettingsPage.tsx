@@ -5,8 +5,9 @@ import {
   RotateCcw,
   CheckCircle2,
   Layers,
-  Info,
+  Database,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Button } from '../components/ui/Button';
@@ -20,7 +21,7 @@ export const SettingsPage: React.FC = () => {
     setOwnerName,
     resetToSampleData,
     products,
-    transactions,
+    sales,
     t,
   } = useShop();
 
@@ -29,22 +30,33 @@ export const SettingsPage: React.FC = () => {
   const [ownerInput, setOwnerInput] = useState(preferences.ownerName);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleSaveDetails = (e: React.FormEvent) => {
     e.preventDefault();
-    setShopName(shopNameInput.trim() || 'Radhe Kirana Store', shopNameHindiInput.trim() || 'राधे किराना स्टोर');
+    setShopName(
+      shopNameInput.trim() || 'Radhe Kirana Store',
+      shopNameHindiInput.trim() || 'राधे किराना स्टोर'
+    );
     setOwnerName(ownerInput.trim() || 'Ramesh Gupta');
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
-  const handleReset = () => {
-    resetToSampleData();
-    setShopNameInput('Radhe Kirana Store');
-    setShopNameHindiInput('राधे किराना स्टोर');
-    setOwnerInput('Ramesh Gupta');
-    setResetSuccess(true);
-    setTimeout(() => setResetSuccess(false), 2500);
+  const handleReset = async () => {
+    setIsResetting(true);
+    try {
+      await resetToSampleData();
+      setShopNameInput('Radhe Kirana Store');
+      setShopNameHindiInput('राधे किराना स्टोर');
+      setOwnerInput('Ramesh Gupta');
+      setResetSuccess(true);
+      setTimeout(() => setResetSuccess(false), 2500);
+    } catch (err) {
+      console.error('Failed to reset database:', err);
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -56,8 +68,8 @@ export const SettingsPage: React.FC = () => {
         </h1>
         <p className="text-xs sm:text-sm text-slate-500">
           {language === 'hi'
-            ? 'भाषा, दुकान का नाम एवं डेमो डेटा प्रबंधन'
-            : 'Language, store identity, and demo state preferences'}
+            ? 'भाषा, दुकान का नाम एवं ऑफ़लाइन IndexedDB डेटा प्रबंधन'
+            : 'Language, store identity, and offline IndexedDB data controls'}
         </p>
       </div>
 
@@ -172,22 +184,24 @@ export const SettingsPage: React.FC = () => {
         </form>
       </section>
 
-      {/* 3. Demo Data Controls */}
+      {/* 3. IndexedDB Offline Storage & Reset Controls */}
       <section className="kirana-card p-4 sm:p-5 border-amber-200 bg-amber-50/20">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <RotateCcw className="w-5 h-5 text-amber-700" />
-            <h2 className="font-bold text-base text-slate-900">{t('btnResetData')}</h2>
+            <Database className="w-5 h-5 text-amber-700" />
+            <h2 className="font-bold text-base text-slate-900">
+              {language === 'hi' ? 'ऑफ़लाइन डेटाबेस प्रबंधन' : 'Offline Database Controls'}
+            </h2>
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-200 text-amber-900">
-            {t('demoBadge')}
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+            IndexedDB v2
           </span>
         </div>
 
         <p className="text-xs text-slate-600 mb-3">
           {language === 'hi'
-            ? `वर्तमान में ${products.length} सामान और ${transactions.length} बिक्री डेमो रिकॉर्ड सक्रिय हैं। यदि आप डेटा को मूल डेमो स्थिति में लाना चाहते हैं, तो रीसेट करें।`
-            : `Currently ${products.length} catalog items and ${transactions.length} demo sales are loaded in memory. Reset restores default sample products.`}
+            ? `वर्तमान में आपके ब्राउज़र के IndexedDB में ${products.length} उत्पाद और ${sales.length} बिक्री लेन-देन स्थायी रूप से सुरक्षित हैं। यदि आप डेटाबेस को रीसेट करके पुनः 16 डिफ़ॉल्ट नमूना उत्पाद लोड करना चाहते हैं, तो नीचे दिए गए बटन पर टैप करें।`
+            : `Currently ${products.length} products and ${sales.length} sales transactions are safely stored in your browser's local IndexedDB. Reset clears custom data and restores 16 default sample products.`}
         </p>
 
         {resetSuccess && (
@@ -201,11 +215,22 @@ export const SettingsPage: React.FC = () => {
           type="button"
           variant="outline"
           size="sm"
+          disabled={isResetting}
           onClick={handleReset}
-          className="gap-2 border-amber-300 text-amber-900 hover:bg-amber-100"
+          className="gap-2 border-amber-300 text-amber-900 hover:bg-amber-100 font-bold"
         >
-          <RotateCcw className="w-4 h-4" />
-          <span>{t('btnResetData')}</span>
+          {isResetting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RotateCcw className="w-4 h-4" />
+          )}
+          <span>
+            {isResetting
+              ? language === 'hi'
+                ? 'डेटाबेस रीसेट हो रहा है...'
+                : 'Resetting Database...'
+              : t('btnResetData')}
+          </span>
         </Button>
       </section>
 
@@ -213,18 +238,24 @@ export const SettingsPage: React.FC = () => {
       <section className="kirana-card p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-2">
           <Layers className="w-5 h-5 text-kirana-700" />
-          <h2 className="font-bold text-base text-slate-900">{t('aboutPhase1Title')}</h2>
+          <h2 className="font-bold text-base text-slate-900">
+            {language === 'hi'
+              ? 'आर्किटेक्चर एवं प्रगति (Phase 2)'
+              : 'Architecture & Progress (Phase 2)'}
+          </h2>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed">
-          {t('aboutPhase1Desc')}
+          {language === 'hi'
+            ? 'KiranaSathi अब पूरी तरह से स्थानीय IndexedDB (Dexie.js v2) द्वारा संचालित है। उत्पाद जोड़ना/बदलना, स्टॉक समायोजन, परमाणु बिक्री लेन-देन (Atomic Transactions), और स्टॉक मूवमेंट लेज़र बिना इंटरनेट के 100% ऑफ़लाइन कार्य करते हैं।'
+            : 'KiranaSathi is now fully powered by local IndexedDB (Dexie.js v2). Adding/editing products, stock adjustments, atomic sale transactions, and the stock movement audit ledger operate 100% offline with zero cloud dependency.'}
         </p>
 
         <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
             {language === 'hi'
-              ? 'KiranaSathi v0.1.0 • फेज़ 1: प्रोडक्शन-ग्रेड फ्रंटएंड यूआई पूर्ण'
-              : 'KiranaSathi v0.1.0 • Phase 1: Production-Grade Frontend Complete'}
+              ? 'KiranaSathi v0.2.0 • फेज़ 2: वास्तविक इन्वेंटरी, बिक्री एवं IndexedDB पूर्ण'
+              : 'KiranaSathi v0.2.0 • Phase 2: Real Inventory, Sales & IndexedDB Complete'}
           </span>
         </div>
       </section>

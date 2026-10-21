@@ -12,20 +12,23 @@ import {
   Banknote,
   BookOpen,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Button } from '../components/ui/Button';
-import { KiranaProduct, SaleCartItem, DemoSaleTransaction } from '../types';
+import { Product, SaleCartItem, Sale } from '../types';
 
 export const SalesPage: React.FC = () => {
-  const { products, recordDemoSale, t, language } = useShop();
+  const { products, recordRealSale, t, language } = useShop();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [cart, setCart] = useState<SaleCartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'credit_udhaar'>('cash');
-  const [confirmedTransaction, setConfirmedTransaction] = useState<DemoSaleTransaction | null>(null);
+  const [confirmedTransaction, setConfirmedTransaction] = useState<Sale | null>(null);
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
+  const [saleError, setSaleError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   // Quick categories
   const categories = [
@@ -41,11 +44,10 @@ export const SalesPage: React.FC = () => {
   const availableProducts = useMemo(() => {
     return products.filter((p) => {
       const q = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        p.name.toLowerCase().includes(q) ||
-        p.nameHindi.toLowerCase().includes(q) ||
-        (p.barcode && p.barcode.includes(q));
+      const nameMatch = p.name.toLowerCase().includes(q);
+      const hindiMatch = (p.nameHindi || '').toLowerCase().includes(q);
+      const barcodeMatch = p.barcode && p.barcode.includes(q);
+      const matchesSearch = !q || nameMatch || hindiMatch || barcodeMatch;
 
       const matchesCategory =
         selectedCategory === 'all' || p.category === selectedCategory;
@@ -55,23 +57,29 @@ export const SalesPage: React.FC = () => {
   }, [products, searchQuery, selectedCategory]);
 
   // Add product to active cart
-  const handleAddToCart = (product: KiranaProduct) => {
+  const handleAddToCart = (product: Product) => {
     setValidationWarning(null);
+    setSaleError(null);
 
-    if (product.currentStock <= 0) {
+    const availableStock = product.quantity ?? product.currentStock ?? 0;
+    const price = product.sellingPrice ?? 0;
+
+    if (availableStock <= 0) {
       setValidationWarning(
-        `${language === 'hi' ? product.nameHindi : product.name} ${language === 'hi' ? 'खत्म है!' : 'is out of stock!'}`
+        `${language === 'hi' ? product.nameHindi || product.name : product.name} ${
+          language === 'hi' ? 'खत्म है!' : 'is out of stock!'
+        }`
       );
       return;
     }
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
-      const defaultIncrement = product.unit === 'kg' || product.unit === 'litre' ? 1 : 1;
+      const defaultIncrement = 1;
 
       if (existing) {
         const newQty = Number((existing.quantity + defaultIncrement).toFixed(2));
-        if (newQty > product.currentStock) {
+        if (newQty > availableStock) {
           setValidationWarning(t('errStockExceeded'));
           return prev;
         }
@@ -80,7 +88,7 @@ export const SalesPage: React.FC = () => {
             ? {
                 ...item,
                 quantity: newQty,
-                subtotal: Math.round(newQty * product.sellingPrice),
+                subtotal: Math.round(newQty * price),
               }
             : item
         );
@@ -90,7 +98,7 @@ export const SalesPage: React.FC = () => {
           {
             product,
             quantity: defaultIncrement,
-            subtotal: Math.round(defaultIncrement * product.sellingPrice),
+            subtotal: Math.round(defaultIncrement * price),
           },
         ];
       }
@@ -100,20 +108,23 @@ export const SalesPage: React.FC = () => {
   // Adjust quantity (+ or -) with fractional increment awareness
   const handleAdjustQuantity = (productId: number, delta: number) => {
     setValidationWarning(null);
+    setSaleError(null);
 
     setCart((prev) => {
       return prev
         .map((item) => {
           if (item.product.id === productId) {
+            const availableStock = item.product.quantity ?? item.product.currentStock ?? 0;
+            const price = item.product.sellingPrice ?? 0;
             const newQty = Number(Math.max(0, item.quantity + delta).toFixed(2));
-            if (newQty > item.product.currentStock) {
+            if (newQty > availableStock) {
               setValidationWarning(t('errStockExceeded'));
               return item;
             }
             return {
               ...item,
               quantity: newQty,
-              subtotal: Math.round(newQty * item.product.sellingPrice),
+              subtotal: Math.round(newQty * price),
             };
           }
           return item;
@@ -131,6 +142,7 @@ export const SalesPage: React.FC = () => {
   const handleClearCart = () => {
     setCart([]);
     setValidationWarning(null);
+    setSaleError(null);
   };
 
   // Total bill amount calculation
@@ -138,13 +150,35 @@ export const SalesPage: React.FC = () => {
     return cart.reduce((sum, item) => sum + item.subtotal, 0);
   }, [cart]);
 
-  // Execute demo checkout
-  const handleConfirmSale = () => {
-    if (cart.length === 0) return;
+  // Execute Real Offline Checkout via Dexie IndexedDB
+  const handleConfirmSale = async () => {
+    if (cart.length === 0 || isSubmitting) return;
 
-    const txn = recordDemoSale(cart, paymentMethod);
-    setConfirmedTransaction(txn);
-    setCart([]);
+    setIsSubmitting(true);
+    setSaleError(null);
+    setValidationWarning(null);
+
+    try {
+      const itemsPayload = cart.map((i) => ({
+        productId: i.product.id!,
+        quantity: i.quantity,
+      }));
+
+      const txn = await recordRealSale(itemsPayload, paymentMethod);
+      setConfirmedTransaction(txn);
+      setCart([]); // Clear cart ONLY on success
+    } catch (err: any) {
+      console.error('Sale transaction failed:', err);
+      setSaleError(
+        err?.message ||
+          (language === 'hi'
+            ? 'बिक्री दर्ज करने में त्रुटि हुई। कृपया स्टॉक जांचें।'
+            : 'Failed to record sale. Please verify available stock.')
+      );
+      // Cart items are RETAINED so shopkeeper doesn't lose order data
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -159,13 +193,26 @@ export const SalesPage: React.FC = () => {
 
       {/* Validation Banner */}
       {validationWarning && (
-        <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2 animate-bounce">
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-amber-700" />
             <span className="font-bold">{validationWarning}</span>
           </div>
           <button onClick={() => setValidationWarning(null)}>
             <X className="w-4 h-4 text-amber-700" />
+          </button>
+        </div>
+      )}
+
+      {/* Transaction Error Alert */}
+      {saleError && (
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />
+            <span className="font-bold">{saleError}</span>
+          </div>
+          <button onClick={() => setSaleError(null)}>
+            <X className="w-4 h-4 text-rose-700" />
           </button>
         </div>
       )}
@@ -181,7 +228,9 @@ export const SalesPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={language === 'hi' ? 'सामान खोजें और जोड़ें...' : 'Search items to add...'}
+              placeholder={
+                language === 'hi' ? 'सामान खोजें और जोड़ें...' : 'Search items to add...'
+              }
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-white"
             />
           </div>
@@ -206,7 +255,10 @@ export const SalesPage: React.FC = () => {
           {/* Product Cards Grid (1-tap add to counter tray) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[550px] overflow-y-auto pr-0.5">
             {availableProducts.map((product) => {
-              const isOutOfStock = product.currentStock <= 0;
+              const stock = product.quantity ?? product.currentStock ?? 0;
+              const threshold = product.minimumStock ?? product.minThreshold ?? 0;
+              const price = product.sellingPrice ?? 0;
+              const isOutOfStock = stock <= 0;
               const inCart = cart.find((i) => i.product.id === product.id);
 
               return (
@@ -233,14 +285,14 @@ export const SalesPage: React.FC = () => {
                       {product.category}
                     </span>
                     <h4 className="font-bold text-xs sm:text-sm text-slate-900 leading-snug line-clamp-2 mt-0.5">
-                      {language === 'hi' ? product.nameHindi : product.name}
+                      {language === 'hi' ? product.nameHindi || product.name : product.name}
                     </h4>
                   </div>
 
                   <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
                     <div>
                       <span className="text-xs sm:text-sm font-extrabold text-slate-900">
-                        ₹{product.sellingPrice}
+                        ₹{price}
                       </span>
                       <span className="text-[10px] text-slate-400 block">
                         /{product.unit}
@@ -251,12 +303,12 @@ export const SalesPage: React.FC = () => {
                       className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                         isOutOfStock
                           ? 'bg-rose-100 text-rose-800'
-                          : product.currentStock <= product.minThreshold
+                          : stock <= threshold
                           ? 'bg-amber-100 text-amber-800'
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {product.currentStock} {product.unit}
+                      {stock} {product.unit}
                     </span>
                   </div>
                 </button>
@@ -279,7 +331,7 @@ export const SalesPage: React.FC = () => {
                 {cart.length > 0 && (
                   <button
                     onClick={handleClearCart}
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-800 flex items-center gap-1"
+                    className="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>{t('btnClearCart')}</span>
@@ -289,25 +341,26 @@ export const SalesPage: React.FC = () => {
 
               {/* Cart Items List */}
               {cart.length > 0 ? (
-                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
                   {cart.map((item) => {
                     const isFractional =
                       item.product.unit === 'kg' || item.product.unit === 'litre';
+                    const price = item.product.sellingPrice ?? 0;
 
                     return (
                       <div
                         key={item.product.id}
-                        className="p-2.5 rounded-xl border border-slate-200 bg-surface flex flex-col gap-2"
+                        className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
                             <h4 className="font-bold text-xs sm:text-sm text-slate-900 truncate">
                               {language === 'hi'
-                                ? item.product.nameHindi
+                                ? item.product.nameHindi || item.product.name
                                 : item.product.name}
                             </h4>
-                            <span className="text-[11px] text-slate-500">
-                              ₹{item.product.sellingPrice} / {item.product.unit}
+                            <span className="text-[11px] text-slate-500 block">
+                              ₹{price} / {item.product.unit}
                             </span>
                           </div>
                           <span className="font-extrabold text-sm text-slate-900 shrink-0">
@@ -321,20 +374,23 @@ export const SalesPage: React.FC = () => {
                           <div className="flex items-center gap-1">
                             {isFractional && (
                               <button
-                                onClick={() => handleAdjustQuantity(item.product.id, 0.5)}
+                                type="button"
+                                onClick={() => handleAdjustQuantity(item.product.id!, 0.5)}
                                 className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700"
                               >
                                 +0.5
                               </button>
                             )}
                             <button
-                              onClick={() => handleAdjustQuantity(item.product.id, 1)}
+                              type="button"
+                              onClick={() => handleAdjustQuantity(item.product.id!, 1)}
                               className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700"
                             >
                               +1
                             </button>
                             <button
-                              onClick={() => handleAdjustQuantity(item.product.id, 5)}
+                              type="button"
+                              onClick={() => handleAdjustQuantity(item.product.id!, 5)}
                               className="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-[11px] font-bold text-slate-700"
                             >
                               +5
@@ -344,9 +400,10 @@ export const SalesPage: React.FC = () => {
                           {/* Stepper (+ / -) */}
                           <div className="flex items-center gap-1.5">
                             <button
+                              type="button"
                               onClick={() =>
                                 handleAdjustQuantity(
-                                  item.product.id,
+                                  item.product.id!,
                                   isFractional ? -0.5 : -1
                                 )
                               }
@@ -361,9 +418,10 @@ export const SalesPage: React.FC = () => {
                             </span>
 
                             <button
+                              type="button"
                               onClick={() =>
                                 handleAdjustQuantity(
-                                  item.product.id,
+                                  item.product.id!,
                                   isFractional ? 0.5 : 1
                                 )
                               }
@@ -374,7 +432,8 @@ export const SalesPage: React.FC = () => {
                             </button>
 
                             <button
-                              onClick={() => handleRemoveItem(item.product.id)}
+                              type="button"
+                              onClick={() => handleRemoveItem(item.product.id!)}
                               className="text-slate-400 hover:text-rose-600 p-1 ml-1"
                               aria-label="Remove item"
                             >
@@ -455,11 +514,22 @@ export const SalesPage: React.FC = () => {
                   variant="primary"
                   size="lg"
                   fullWidth
+                  disabled={isSubmitting}
                   className="font-bold gap-2 shadow-md shadow-kirana-700/20"
                   onClick={handleConfirmSale}
                 >
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>{t('btnConfirmSale')}</span>
+                  {isSubmitting ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-5 h-5" />
+                  )}
+                  <span>
+                    {isSubmitting
+                      ? language === 'hi'
+                        ? 'दर्ज हो रहा है...'
+                        : 'Recording...'
+                      : t('btnConfirmSale')}
+                  </span>
                 </Button>
               </div>
             )}
@@ -467,7 +537,7 @@ export const SalesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Demonstration Receipt Modal Dialog */}
+      {/* Official Offline Receipt Modal Dialog */}
       {confirmedTransaction && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
           <div className="kirana-card w-full max-w-md p-6 bg-white animate-in fade-in zoom-in-95 duration-150">
@@ -478,9 +548,14 @@ export const SalesPage: React.FC = () => {
               <h2 className="text-lg font-extrabold text-slate-900">
                 {t('receiptTitle')}
               </h2>
-              <span className="inline-block mt-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-bold text-[10px]">
-                {t('demoBadge')}
-              </span>
+              <div className="flex items-center justify-center gap-2 mt-1">
+                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold text-[11px]">
+                  {confirmedTransaction.receiptNumber || `KS-${confirmedTransaction.id}`}
+                </span>
+                <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[10px]">
+                  {language === 'hi' ? 'ऑफलाइन सुरक्षित' : 'IndexedDB Saved'}
+                </span>
+              </div>
               <p className="text-xs text-slate-500 mt-1">{t('receiptSubtitle')}</p>
             </div>
 
@@ -490,21 +565,35 @@ export const SalesPage: React.FC = () => {
                 <span>सामान (Item)</span>
                 <span>राशि (Amount)</span>
               </div>
-              {confirmedTransaction.items.map((i, idx) => (
-                <div key={idx} className="flex justify-between text-slate-800">
-                  <span>
-                    {language === 'hi' ? i.productNameHindi : i.productName} ({i.quantity} {i.unit})
-                  </span>
-                  <span className="font-bold">₹{i.subtotal}</span>
-                </div>
-              ))}
+              {confirmedTransaction.items.map((i, idx) => {
+                const lineAmt = i.lineTotal ?? i.subtotal ?? (i.quantity * (i.unitPrice ?? 0));
+                return (
+                  <div key={idx} className="flex justify-between text-slate-800">
+                    <span>
+                      {language === 'hi'
+                        ? i.productNameHindi || i.productName
+                        : i.productName}{' '}
+                      ({i.quantity} {i.unit})
+                    </span>
+                    <span className="font-bold">₹{lineAmt}</span>
+                  </div>
+                );
+              })}
               <div className="pt-2 flex justify-between font-extrabold text-sm text-slate-900 border-t border-slate-100">
                 <span>{t('totalBill')}</span>
-                <span className="text-kirana-800">₹{confirmedTransaction.totalAmount}</span>
+                <span className="text-kirana-800">₹{confirmedTransaction.totalAmount ?? 0}</span>
               </div>
               <div className="flex justify-between text-slate-500 text-[11px]">
                 <span>भुगतान मोड (Mode):</span>
                 <span className="uppercase font-bold">{confirmedTransaction.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between text-slate-400 text-[10px] pt-1">
+                <span>तारीख व समय (Time):</span>
+                <span>
+                  {new Date(
+                    confirmedTransaction.createdAt || confirmedTransaction.timestamp || Date.now()
+                  ).toLocaleString('en-IN')}
+                </span>
               </div>
             </div>
 

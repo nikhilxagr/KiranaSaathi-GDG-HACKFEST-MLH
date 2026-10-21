@@ -6,7 +6,9 @@ import { MemoryRouter } from 'react-router-dom';
 import { ShopProvider } from './context/ShopContext';
 import { AppRoutes, App } from './App';
 
-// Mock API and Dexie for fast, isolated frontend testing
+import 'fake-indexeddb/auto';
+
+// Mock API for fast, isolated frontend testing
 vi.mock('./services/api', () => ({
   checkBackendHealth: vi.fn().mockResolvedValue({
     status: 'ok',
@@ -16,12 +18,6 @@ vi.mock('./services/api', () => ({
     timestamp: new Date().toISOString(),
     uptimeSeconds: 42,
   }),
-}));
-
-vi.mock('./db', () => ({
-  db: {
-    open: vi.fn().mockResolvedValue({}),
-  },
 }));
 
 const renderTestApp = (initialRoute = '/') => {

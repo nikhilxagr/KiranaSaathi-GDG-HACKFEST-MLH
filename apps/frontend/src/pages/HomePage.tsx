@@ -186,26 +186,30 @@ export const HomePage: React.FC = () => {
 
             {lowStockProducts.length > 0 ? (
               <div className="space-y-2">
-                {lowStockProducts.slice(0, 3).map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/50 flex items-center justify-between gap-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">
-                        {language === 'hi' ? item.nameHindi : item.name}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        {language === 'hi' ? 'न्यूनतम सीमा:' : 'Min threshold:'} {item.minThreshold} {item.unit}
-                      </p>
+                {lowStockProducts.slice(0, 3).map((item) => {
+                  const stock = item.quantity ?? item.currentStock ?? 0;
+                  const threshold = item.minimumStock ?? item.minThreshold ?? 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-2.5 rounded-xl border border-amber-200 bg-amber-50/50 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                          {language === 'hi' ? item.nameHindi : item.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {language === 'hi' ? 'न्यूनतम सीमा:' : 'Min threshold:'} {threshold} {item.unit}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-200 text-amber-900">
+                          {stock} {item.unit}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-extrabold bg-amber-200 text-amber-900">
-                        {item.currentStock} {item.unit}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-medium text-center">
@@ -247,26 +251,29 @@ export const HomePage: React.FC = () => {
 
             {slowMovingProducts.length > 0 ? (
               <div className="space-y-2">
-                {slowMovingProducts.slice(0, 3).map((item) => (
-                  <div
-                    key={item.id}
-                    className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">
-                        {language === 'hi' ? item.nameHindi : item.name}
-                      </p>
-                      <p className="text-[11px] text-slate-500">
-                        {language === 'hi' ? 'स्टॉक:' : 'Stock:'} {item.currentStock} {item.unit}
-                      </p>
+                {slowMovingProducts.slice(0, 3).map((item) => {
+                  const stock = item.quantity ?? item.currentStock ?? 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between gap-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-800 truncate">
+                          {language === 'hi' ? item.nameHindi : item.name}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {language === 'hi' ? 'स्टॉक:' : 'Stock:'} {stock} {item.unit}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                          {item.daysSinceLastSale ?? 30}+ {language === 'hi' ? 'दिन' : 'days'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
-                        {item.daysSinceLastSale} {language === 'hi' ? 'दिन' : 'days'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-slate-50 text-slate-600 text-xs text-center">
@@ -285,51 +292,56 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Recent Demo Activity / Sales Stream */}
+      {/* 4. Recent Sales Stream */}
       <section className="kirana-card p-4 sm:p-5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-kirana-700" />
             <h2 className="font-bold text-base text-slate-900">{t('sectionRecentSalesTitle')}</h2>
           </div>
-          <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">
-            {t('demoBadge')}
+          <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold">
+            {language === 'hi' ? 'स्थानीय IndexedDB' : 'Local IndexedDB'}
           </span>
         </div>
 
         {transactions.length > 0 ? (
           <div className="divide-y divide-slate-100">
-            {transactions.slice(0, 4).map((txn) => (
-              <div key={txn.id} className="py-2.5 flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-800">{txn.id}</span>
-                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
-                      {txn.paymentMethod}
-                    </span>
+            {transactions.slice(0, 4).map((txn) => {
+              const displayId = txn.receiptNumber || `KS-${txn.id}`;
+              const amount = txn.totalAmount ?? 0;
+              const dateStr = txn.createdAt || txn.timestamp || new Date().toISOString();
+              return (
+                <div key={txn.id || displayId} className="py-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">{displayId}</span>
+                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                        {txn.paymentMethod}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 truncate mt-0.5">
+                      {txn.items
+                        .map(
+                          (i) =>
+                            `${language === 'hi' ? (i.productNameHindi || i.productName) : i.productName} (${i.quantity} ${i.unit})`
+                        )
+                        .join(', ')}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
-                    {txn.items
-                      .map(
-                        (i) =>
-                          `${language === 'hi' ? i.productNameHindi : i.productName} (${i.quantity} ${i.unit})`
-                      )
-                      .join(', ')}
-                  </p>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-extrabold text-slate-900">
+                      ₹{amount.toLocaleString('en-IN')}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {new Date(dateStr).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-extrabold text-slate-900">
-                    ₹{txn.totalAmount.toLocaleString('en-IN')}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {new Date(txn.timestamp).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <p className="text-xs text-slate-400 text-center py-4">{t('noRecentSales')}</p>

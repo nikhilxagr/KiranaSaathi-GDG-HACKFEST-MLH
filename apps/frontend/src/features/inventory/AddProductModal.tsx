@@ -1,35 +1,67 @@
-import React, { useState } from 'react';
-import { X, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useShop } from '../../context/ShopContext';
 import { Button } from '../../components/ui/Button';
-import { ProductCategory, ProductUnit } from '../../types';
+import { Product, ProductCategory, ProductUnit } from '../../types';
 
 interface AddProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  productToEdit?: Product | null;
 }
 
 export const AddProductModal: React.FC<AddProductModalProps> = ({
   isOpen,
   onClose,
+  productToEdit,
 }) => {
-  const { addProduct, t, language } = useShop();
+  const { addProduct, updateProduct, t, language } = useShop();
 
   const [name, setName] = useState('');
   const [nameHindi, setNameHindi] = useState('');
+  const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState<ProductCategory>('grains');
-  const [currentStock, setCurrentStock] = useState<string>('10');
+  const [quantity, setQuantity] = useState<string>('10');
   const [unit, setUnit] = useState<ProductUnit>('packet');
-  const [minThreshold, setMinThreshold] = useState<string>('5');
+  const [minimumStock, setMinimumStock] = useState<string>('5');
   const [costPrice, setCostPrice] = useState<string>('50');
   const [sellingPrice, setSellingPrice] = useState<string>('60');
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const isEditing = Boolean(productToEdit && productToEdit.id);
+
+  useEffect(() => {
+    if (productToEdit) {
+      setName(productToEdit.name);
+      setNameHindi(productToEdit.nameHindi || '');
+      setBarcode(productToEdit.barcode || '');
+      setCategory(productToEdit.category);
+      setQuantity(String(productToEdit.quantity));
+      setUnit(productToEdit.unit);
+      setMinimumStock(String(productToEdit.minimumStock));
+      setCostPrice(productToEdit.costPrice !== undefined ? String(productToEdit.costPrice) : '');
+      setSellingPrice(productToEdit.sellingPrice !== undefined ? String(productToEdit.sellingPrice) : '');
+    } else {
+      setName('');
+      setNameHindi('');
+      setBarcode('');
+      setCategory('grains');
+      setQuantity('10');
+      setUnit('packet');
+      setMinimumStock('5');
+      setCostPrice('50');
+      setSellingPrice('60');
+    }
+    setError(null);
+    setSuccessMsg(null);
+  }, [productToEdit, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
@@ -39,10 +71,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       return;
     }
 
-    const parsedStock = parseFloat(currentStock);
-    const parsedThreshold = parseFloat(minThreshold);
-    const parsedCost = parseFloat(costPrice);
-    const parsedSelling = parseFloat(sellingPrice);
+    const parsedStock = parseFloat(quantity);
+    const parsedThreshold = parseFloat(minimumStock);
+    const parsedCost = costPrice.trim() !== '' ? parseFloat(costPrice) : undefined;
+    const parsedSelling = sellingPrice.trim() !== '' ? parseFloat(sellingPrice) : undefined;
 
     if (isNaN(parsedStock) || parsedStock < 0) {
       setError(t('errInvalidQuantity'));
@@ -50,40 +82,68 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
     }
 
     if (isNaN(parsedThreshold) || parsedThreshold < 0) {
-      setError('Threshold must be zero or a positive number.');
+      setError(language === 'hi' ? 'न्यूनतम सीमा शून्य या धनात्मक होनी चाहिए।' : 'Threshold must be non-negative.');
       return;
     }
 
-    addProduct({
-      name: name.trim(),
-      nameHindi: nameHindi.trim() || name.trim(),
-      category,
-      currentStock: parsedStock,
-      unit,
-      minThreshold: parsedThreshold,
-      costPrice: isNaN(parsedCost) ? 0 : parsedCost,
-      sellingPrice: isNaN(parsedSelling) ? 0 : parsedSelling,
-    });
+    setIsSubmitting(true);
 
-    setSuccessMsg(t('msgProductAdded'));
+    try {
+      if (isEditing && productToEdit?.id) {
+        await updateProduct(productToEdit.id, {
+          name: name.trim(),
+          nameHindi: nameHindi.trim() || undefined,
+          barcode: barcode.trim() || undefined,
+          category,
+          quantity: parsedStock,
+          unit,
+          minimumStock: parsedThreshold,
+          costPrice: parsedCost,
+          sellingPrice: parsedSelling,
+        });
 
-    // Reset and close after brief feedback
-    setTimeout(() => {
-      setName('');
-      setNameHindi('');
-      setCurrentStock('10');
-      setMinThreshold('5');
-      setCostPrice('50');
-      setSellingPrice('60');
-      setSuccessMsg(null);
-      onClose();
-    }, 1200);
+        setSuccessMsg(
+          language === 'hi'
+            ? 'सामान की जानकारी सफलता से अपडेट हुई!'
+            : 'Product details updated successfully in IndexedDB!'
+        );
+      } else {
+        await addProduct({
+          name: name.trim(),
+          nameHindi: nameHindi.trim() || undefined,
+          barcode: barcode.trim() || undefined,
+          category,
+          quantity: parsedStock,
+          unit,
+          minimumStock: parsedThreshold,
+          costPrice: parsedCost,
+          sellingPrice: parsedSelling,
+        });
+
+        setSuccessMsg(
+          language === 'hi'
+            ? 'नया सामान सफलता से IndexedDB में दर्ज हुआ!'
+            : 'New product saved successfully to IndexedDB!'
+        );
+      }
+
+      // Close modal after brief confirmation
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setSuccessMsg(null);
+        onClose();
+      }, 1000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save product';
+      setError(msg);
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
       <div
-        className="kirana-card w-full max-w-lg p-5 sm:p-6 bg-white my-auto max-h-[90vh] overflow-y-auto"
+        className="kirana-card w-full max-w-lg p-5 sm:p-6 bg-white my-auto max-h-[92vh] overflow-y-auto shadow-xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
@@ -92,15 +152,16 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
           <div>
             <h2 id="modal-title" className="text-lg font-bold text-slate-900">
-              {t('addNewProductTitle')}
+              {isEditing ? t('editProductTitle') : t('addNewProductTitle')}
             </h2>
-            <span className="text-[11px] font-semibold text-kirana-800 bg-kirana-50 px-2 py-0.5 rounded">
-              {t('demoBadge')}
+            <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              IndexedDB Storage
             </span>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
+            disabled={isSubmitting}
+            className="w-9 h-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 disabled:opacity-50"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -110,8 +171,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         {/* Feedback Alerts */}
         {error && (
           <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+            <span className="font-semibold">{error}</span>
           </div>
         )}
 
@@ -133,9 +194,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Fortune Mustard Oil 1L"
+                placeholder="e.g. Fortune Mustard Oil (1L)"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
                 required
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -146,10 +208,26 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="text"
                 value={nameHindi}
                 onChange={(e) => setNameHindi(e.target.value)}
-                placeholder="उदा. सरसों का तेल (1L)"
+                placeholder="उदा. सरसों तेल (1L)"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 font-['Noto_Sans_Devanagari']"
+                disabled={isSubmitting}
               />
             </div>
+          </div>
+
+          {/* Barcode / Code (Optional) */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              {language === 'hi' ? 'बारकोड / कोड (वैकल्पिक)' : 'Barcode / SKU (Optional)'}
+            </label>
+            <input
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="8901030383123"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
+              disabled={isSubmitting}
+            />
           </div>
 
           {/* Category & Unit */}
@@ -162,6 +240,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ProductCategory)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-white"
+                disabled={isSubmitting}
               >
                 <option value="grains">{t('catGrains')}</option>
                 <option value="oil">{t('catOil')}</option>
@@ -180,6 +259,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 value={unit}
                 onChange={(e) => setUnit(e.target.value as ProductUnit)}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-white"
+                disabled={isSubmitting}
               >
                 <option value="packet">{t('unitPacket')}</option>
                 <option value="kg">{t('unitKg')}</option>
@@ -200,11 +280,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="number"
                 step="any"
                 min="0"
-                value={currentStock}
-                onChange={(e) => setCurrentStock(e.target.value)}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
                 placeholder="10"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
                 required
+                disabled={isSubmitting}
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
                 {language === 'hi' ? 'दशमलव मान्य है (उदा. 2.5)' : 'Decimals allowed (e.g. 2.5)'}
@@ -219,11 +300,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 type="number"
                 step="any"
                 min="0"
-                value={minThreshold}
-                onChange={(e) => setMinThreshold(e.target.value)}
+                value={minimumStock}
+                onChange={(e) => setMinimumStock(e.target.value)}
                 placeholder="5"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
                 required
+                disabled={isSubmitting}
               />
               <span className="text-[10px] text-slate-400 mt-0.5 block">
                 {language === 'hi' ? 'कम होने पर चेतावनी' : 'Alert threshold'}
@@ -245,6 +327,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={(e) => setCostPrice(e.target.value)}
                 placeholder="₹"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
+                disabled={isSubmitting}
               />
             </div>
             <div>
@@ -259,6 +342,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 onChange={(e) => setSellingPrice(e.target.value)}
                 placeholder="₹"
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500"
+                disabled={isSubmitting}
               />
             </div>
           </div>
@@ -270,7 +354,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               variant="outline"
               size="md"
               onClick={onClose}
-              disabled={Boolean(successMsg)}
+              disabled={isSubmitting}
             >
               {t('btnCancel')}
             </Button>
@@ -278,10 +362,17 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
               type="submit"
               variant="primary"
               size="md"
-              className="gap-2 font-bold"
-              disabled={Boolean(successMsg)}
+              className="gap-2 font-bold min-w-[120px]"
+              disabled={isSubmitting}
             >
-              {t('btnSaveProduct')}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{language === 'hi' ? 'सेव हो रहा है...' : 'Saving...'}</span>
+                </>
+              ) : (
+                <span>{isEditing ? (language === 'hi' ? 'अपडेट करें' : 'Update') : t('btnSaveProduct')}</span>
+              )}
             </Button>
           </div>
         </form>

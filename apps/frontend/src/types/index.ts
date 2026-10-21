@@ -21,41 +21,101 @@ export interface HealthCheckResponse {
   uptimeSeconds: number;
 }
 
-export interface KiranaProduct {
-  id: number;
+export interface Product {
+  id?: number;
   name: string;
-  nameHindi: string;
+  nameHindi?: string;
   barcode?: string;
   category: ProductCategory;
-  costPrice: number;
-  sellingPrice: number;
-  currentStock: number; // Supports fractional numbers like 2.5 kg
-  minThreshold: number;
+  quantity: number; // Stored as finite JavaScript number supporting fractional values (e.g. 2.5 kg)
   unit: ProductUnit;
-  daysSinceLastSale: number; // Identifies slow-moving items (e.g. > 15 days)
-  updatedAt: string;
+  minimumStock: number; // Reorder threshold
+  costPrice?: number;
+  sellingPrice?: number;
+  createdAt: string; // ISO 8601 string
+  updatedAt: string; // ISO 8601 string
+
+  // Backward-compatibility properties for existing Phase 1 components
+  currentStock?: number;
+  minThreshold?: number;
+  daysSinceLastSale?: number;
 }
 
+// Backward-compatibility type alias for Phase 1 seed data & legacy components
+export interface KiranaProduct {
+  id?: number;
+  name: string;
+  nameHindi?: string;
+  barcode?: string;
+  category: ProductCategory;
+  quantity?: number;
+  unit: ProductUnit;
+  minimumStock?: number;
+  costPrice?: number;
+  sellingPrice?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  currentStock: number;
+  minThreshold: number;
+  daysSinceLastSale?: number;
+}
+
+/**
+ * Line item snapshot recorded inside a completed Sale
+ */
+export interface SaleItem {
+  productId?: number;
+  productName: string;
+  productNameHindi?: string;
+  quantity: number; // Supports fractional numbers (e.g. 0.5 litre)
+  unit: ProductUnit;
+  unitPrice?: number; // Optional price snapshot
+  lineTotal?: number; // Optional line total (unitPrice * quantity)
+  price?: number; // Backward-compatibility alias
+  subtotal?: number; // Backward-compatibility alias
+}
+
+/**
+ * Sale Record Data Model (IndexedDB Table: sales)
+ */
+export interface Sale {
+  id?: number | string;
+  receiptNumber?: string;
+  items: SaleItem[];
+  totalAmount?: number;
+  paymentMethod: 'cash' | 'upi' | 'credit_udhaar';
+  createdAt?: string; // ISO 8601 string
+  timestamp?: string; // Backward-compatibility alias
+  isDemo?: boolean;
+}
+
+// Backward-compatibility type alias
+export type DemoSaleTransaction = Sale;
+
+export type StockMovementType = 'sale' | 'restock' | 'adjustment';
+
+/**
+ * Stock Movement Ledger Data Model (IndexedDB Table: stockMovements)
+ */
+export interface StockMovement {
+  id?: number;
+  productId: number;
+  productName: string;
+  type: StockMovementType;
+  quantityDelta: number; // Signed delta: negative for sale (-1.5), positive for restock (+10)
+  resultingQuantity: number;
+  saleId?: number;
+  note?: string;
+  createdAt: string; // ISO 8601 string
+}
+
+/**
+ * Counter Cart item selected during quick sales
+ */
 export interface SaleCartItem {
-  product: KiranaProduct;
+  product: Product;
   quantity: number;
   subtotal: number;
-}
-
-export interface DemoSaleTransaction {
-  id: string;
-  timestamp: string;
-  items: {
-    productName: string;
-    productNameHindi: string;
-    quantity: number;
-    unit: ProductUnit;
-    price: number;
-    subtotal: number;
-  }[];
-  totalAmount: number;
-  paymentMethod: 'cash' | 'upi' | 'credit_udhaar';
-  isDemo: true;
 }
 
 export interface ShopPreferences {
