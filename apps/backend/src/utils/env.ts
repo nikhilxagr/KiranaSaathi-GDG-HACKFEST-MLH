@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(5000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
-  MONGODB_URI: z.string().default('mongodb://127.0.0.1:27017/kiranasathi'),
+  MONGODB_URI: z.string().optional().default('mongodb://127.0.0.1:27017/kiranasathi'),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

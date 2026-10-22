@@ -119,6 +119,11 @@ export interface Translations {
   resetSuccess: string;
   aboutPhase1Title: string;
   aboutPhase1Desc: string;
+
+  // Backend Connection Status
+  backendConnected: string;
+  backendUnavailable: string;
+  backendChecking: string;
 }
 
 export const DICTIONARY: Record<Language, Translations> = {
@@ -232,6 +237,9 @@ export const DICTIONARY: Record<Language, Translations> = {
     resetSuccess: 'डेमो डेटा मूल स्थिति में रीसेट हो गया!',
     aboutPhase1Title: 'KiranaSathi फेज़ 1 के बारे में',
     aboutPhase1Desc: 'यह फेज़ 1 का फ्रंटएंड यूआई है जो बिना सर्वर के तुरंत चलता है। फेज़ 2 में डेक्सी (Dexie) डेटाबेस जोड़कर इसे 100% स्थायी ऑफ़लाइन बनाया जाएगा।',
+    backendConnected: 'सर्वर कनेक्टेड',
+    backendUnavailable: 'सर्वर ऑफलाइन',
+    backendChecking: 'जांच हो रही है...',
   },
   en: {
     appName: 'KiranaSathi',
@@ -343,6 +351,9 @@ export const DICTIONARY: Record<Language, Translations> = {
     resetSuccess: 'Demo data has been reset to defaults!',
     aboutPhase1Title: 'About KiranaSathi Phase 1',
     aboutPhase1Desc: 'This is the production-quality frontend UI for Phase 1. It operates standalone in-memory. Phase 2 will bind IndexedDB (Dexie) for true offline persistence.',
+    backendConnected: 'Backend connected',
+    backendUnavailable: 'Backend unavailable',
+    backendChecking: 'Checking connection...',
   },
 };
 

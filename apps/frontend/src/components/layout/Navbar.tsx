@@ -1,12 +1,14 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Store, Wifi, WifiOff, Languages } from 'lucide-react';
+import { Store, Wifi, WifiOff, Languages, Server } from 'lucide-react';
 import { useNetworkStatus } from '../../hooks/useNetworkStatus';
+import { useBackendHealth } from '../../hooks/useBackendHealth';
 import { useShop } from '../../context/ShopContext';
 
 export const Navbar: React.FC = () => {
   const networkStatus = useNetworkStatus();
   const isOnline = networkStatus === 'online';
+  const { status: backendStatus } = useBackendHealth();
   const { preferences, language, setLanguage, t, lowStockCount } = useShop();
 
   const toggleLanguage = () => {
@@ -83,9 +85,46 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
+          {/* Backend Connection Status Indicator */}
+          <div
+            data-testid="backend-status-indicator"
+            title={
+              backendStatus === 'connected'
+                ? 'Backend API (/api/health): Connected. Local IndexedDB remains primary source of truth.'
+                : backendStatus === 'unavailable'
+                ? 'Backend API: Offline / Unreachable. App operates 100% locally via IndexedDB.'
+                : 'Checking backend API connection...'
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+              backendStatus === 'connected'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : backendStatus === 'unavailable'
+                ? 'bg-slate-100 text-slate-600 border-slate-300'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
+            }`}
+          >
+            <Server className={`w-3.5 h-3.5 ${backendStatus === 'connected' ? 'text-emerald-600' : 'text-slate-400'}`} />
+            <span
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                backendStatus === 'connected'
+                  ? 'bg-emerald-500'
+                  : backendStatus === 'unavailable'
+                  ? 'bg-slate-400'
+                  : 'bg-blue-500 animate-ping'
+              }`}
+            />
+            <span className="hidden sm:inline text-[11px] font-bold">
+              {backendStatus === 'connected'
+                ? t('backendConnected')
+                : backendStatus === 'unavailable'
+                ? t('backendUnavailable')
+                : t('backendChecking')}
+            </span>
+          </div>
+
           {/* Network Indicator Badge */}
           <div
-            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border ${
+            className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold border ${
               isOnline
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 : 'bg-amber-50 text-amber-800 border-amber-300'

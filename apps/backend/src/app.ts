@@ -8,30 +8,51 @@ import { env } from './utils/env';
 export const createApp = (): Express => {
   const app = express();
 
-  // Basic security and parsing middleware
+  // Configure explicit CORS origins
+  const allowedOrigins = [
+    env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+  ].filter(Boolean);
+
   app.use(
     cors({
-      origin: [env.FRONTEND_URL, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+      origin: (origin, callback) => {
+        // Permit requests with no origin (e.g. server-to-server, curl, mobile native or test runner)
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS blocked for origin: ${origin}`));
+        }
+      },
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
       credentials: true,
     })
   );
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
 
-  // Root welcome endpoint for API discovery
+  // Parse JSON requests with safe 100kb limit
+  app.use(express.json({ limit: '100kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '100kb' }));
+
+  // Root discovery endpoint
   app.get('/', (_req, res) => {
     res.json({
-      name: 'KiranaSathi API',
+      success: true,
+      service: 'kiranasathi-backend',
+      appName: 'KiranaSathi',
       version: '0.1.0',
-      description: 'Backend services for KiranaSathi kirana inventory assistant',
+      description: 'Backend API service for KiranaSathi',
       healthCheck: '/api/health',
+      readinessCheck: '/api/health/ready',
     });
   });
 
-  // Mount API endpoints
+  // Mount API router
   app.use('/api', apiRouter);
 
-  // Catch-all 404 and Error handling
+  // Catch-all 404 and centralized error handler
   app.use(notFoundHandler);
   app.use(errorHandler);
 

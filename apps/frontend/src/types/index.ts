@@ -13,13 +13,24 @@ export type ProductCategory =
   | 'household';
 
 export interface HealthCheckResponse {
+  success?: boolean;
   status: 'ok' | 'degraded' | 'error';
   service: string;
+  appName?: string;
   version: string;
   environment: string;
   timestamp: string;
   uptimeSeconds: number;
 }
+
+export interface ReadinessResponse {
+  success: boolean;
+  ready: boolean;
+  service: string;
+  timestamp: string;
+}
+
+export type BackendConnectionStatus = 'connected' | 'unavailable' | 'checking';
 
 export interface Product {
   id?: number;
