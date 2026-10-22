@@ -27,6 +27,11 @@ import {
   recordSale as dbRecordSale,
   getAllSales,
 } from '../services/salesService';
+import {
+  syncWithMongoDB,
+  dualWriteProduct,
+  dualWriteSale,
+} from '../services/syncService';
 import { Translations, t } from '../i18n';
 
 interface SlowMovingItem {
@@ -143,7 +148,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     savePreferences({ ...preferences, ownerName: name });
   };
 
-  // Reactive data loader from IndexedDB
+  // Reactive data loader from IndexedDB + MongoDB sync
   const refreshData = useCallback(async () => {
     try {
       const [allProducts, allSales] = await Promise.all([
@@ -165,6 +170,11 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Analyze slow moving inventory from real sale records
       const slowAnalysis = await getSlowMovingAnalysis();
       setSlowMovingAnalysis(slowAnalysis);
+
+      // Background sync with MongoDB cloud backend when online
+      if (typeof navigator !== 'undefined' && navigator.onLine) {
+        syncWithMongoDB(allProducts, allSales).catch(() => {});
+      }
     } catch (err) {
       console.error('Failed to load data from IndexedDB:', err);
     } finally {
@@ -182,6 +192,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     item: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'currentStock' | 'minThreshold'>
   ): Promise<Product> => {
     const saved = await dbAddProduct(item);
+    dualWriteProduct(saved).catch(() => {});
     await refreshData();
     return saved;
   };
@@ -191,6 +202,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updates: Partial<Omit<Product, 'id' | 'createdAt'>>
   ): Promise<Product> => {
     const saved = await dbUpdateProduct(id, updates);
+    dualWriteProduct(saved).catch(() => {});
     await refreshData();
     return saved;
   };
@@ -201,6 +213,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     note?: string
   ): Promise<Product> => {
     const saved = await dbAddStock(productId, quantityToAdd, note);
+    dualWriteProduct(saved).catch(() => {});
     await refreshData();
     return saved;
   };
@@ -211,6 +224,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     reason?: string
   ): Promise<Product> => {
     const saved = await dbAdjustStock(productId, newQuantity, reason);
+    dualWriteProduct(saved).catch(() => {});
     await refreshData();
     return saved;
   };
@@ -220,6 +234,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     paymentMethod: 'cash' | 'upi' | 'credit_udhaar' = 'cash'
   ): Promise<Sale> => {
     const sale = await dbRecordSale({ items, paymentMethod });
+    dualWriteSale(sale).catch(() => {});
     await refreshData();
     return sale;
   };

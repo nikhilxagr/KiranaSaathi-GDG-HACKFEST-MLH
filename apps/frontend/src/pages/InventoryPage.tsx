@@ -20,7 +20,7 @@ import { AddProductModal } from '../features/inventory/AddProductModal';
 import { Product, ProductCategory } from '../types';
 
 export const InventoryPage: React.FC = () => {
-  const { products, addStock, seedSampleCatalog, t, language } = useShop();
+  const { products, isLoading, addStock, seedSampleCatalog, t, language } = useShop();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -123,7 +123,7 @@ export const InventoryPage: React.FC = () => {
       setTimeout(() => {
         setStockActionProduct(null);
         setStockSuccessMsg(null);
-      }, 1000);
+      }, 800);
     } catch (err) {
       console.error('Failed to add stock:', err);
     } finally {
@@ -143,7 +143,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="inventory-page">
       {/* 1. Header & Primary Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -151,7 +151,7 @@ export const InventoryPage: React.FC = () => {
             {t('inventoryTitle')}
           </h1>
           <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
-            <span>
+            <span data-testid="total-products-count">
               {products.length} {language === 'hi' ? 'सामान दर्ज हैं' : 'total items'}
             </span>
             <span>•</span>
@@ -168,6 +168,7 @@ export const InventoryPage: React.FC = () => {
           size="md"
           className="gap-2 font-bold shrink-0 shadow-sm"
           onClick={() => setIsAddModalOpen(true)}
+          data-testid="add-product-button"
         >
           <PlusCircle className="w-4 h-4" />
           <span>{t('btnAddProduct')}</span>
@@ -185,6 +186,7 @@ export const InventoryPage: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('searchPlaceholder')}
             className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-surface/50"
+            data-testid="search-inventory-input"
           />
           {searchQuery && (
             <button
@@ -207,6 +209,7 @@ export const InventoryPage: React.FC = () => {
                 ? 'bg-amber-600 text-white border-amber-600'
                 : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
             }`}
+            data-testid="filter-low-stock-toggle"
           >
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>{t('filterLowStock')}</span>
@@ -232,8 +235,16 @@ export const InventoryPage: React.FC = () => {
       </div>
 
       {/* 3. Product Catalog List */}
-      {filteredProducts.length > 0 ? (
-        <div className="space-y-2.5">
+      {isLoading ? (
+        /* Loading skeleton while refreshing IndexedDB/MongoDB */
+        <div className="kirana-card p-12 text-center max-w-md mx-auto my-6 space-y-3" data-testid="loading-indicator">
+          <Loader2 className="w-8 h-8 text-kirana-700 animate-spin mx-auto" />
+          <p className="text-sm font-bold text-slate-700">
+            {language === 'hi' ? 'डेटा लोड हो रहा है...' : 'Loading catalog...'}
+          </p>
+        </div>
+      ) : filteredProducts.length > 0 ? (
+        <div className="space-y-2.5" data-testid="product-list">
           {filteredProducts.map((product) => {
             const stock = product.quantity ?? product.currentStock ?? 0;
             const threshold = product.minimumStock ?? product.minThreshold ?? 0;
@@ -244,7 +255,8 @@ export const InventoryPage: React.FC = () => {
 
             return (
               <div
-                key={product.id}
+                key={product.id || product.name}
+                data-testid={`product-card-${product.name}`}
                 className={`kirana-card p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                   isOutOfStock
                     ? 'border-rose-300 bg-rose-50/20'
@@ -276,7 +288,10 @@ export const InventoryPage: React.FC = () => {
                     )}
                   </div>
 
-                  <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug">
+                  <h3
+                    className="font-bold text-slate-900 text-sm sm:text-base leading-snug"
+                    data-testid={`product-title-${product.name}`}
+                  >
                     {language === 'hi' ? product.nameHindi || product.name : product.name}
                   </h3>
                   <p className="text-xs text-slate-500">
@@ -290,6 +305,7 @@ export const InventoryPage: React.FC = () => {
                   <div className="text-left sm:text-right">
                     <span className="text-xs text-slate-400 block">{t('colStock')}</span>
                     <span
+                      data-testid={`stock-${product.name}`}
                       className={`text-base font-extrabold ${
                         isOutOfStock
                           ? 'text-rose-700'
@@ -300,7 +316,10 @@ export const InventoryPage: React.FC = () => {
                     >
                       {stock} {product.unit}
                     </span>
-                    <span className="text-[11px] text-slate-400 block">
+                    <span
+                      data-testid={`min-stock-${product.name}`}
+                      className="text-[11px] text-slate-400 block"
+                    >
                       Min: {threshold} {product.unit}
                     </span>
                   </div>
@@ -324,6 +343,7 @@ export const InventoryPage: React.FC = () => {
                       title={language === 'hi' ? 'स्टॉक जोड़ें' : 'Add Stock'}
                       className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-kirana-50 hover:border-kirana-400 text-slate-700 hover:text-kirana-800 transition-colors"
                       aria-label="Add Stock"
+                      data-testid={`add-stock-btn-${product.name}`}
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -333,6 +353,7 @@ export const InventoryPage: React.FC = () => {
                       title={language === 'hi' ? 'उत्पाद बदलें' : 'Edit Product'}
                       className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition-colors"
                       aria-label="Edit Product"
+                      data-testid={`edit-product-btn-${product.name}`}
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -344,7 +365,7 @@ export const InventoryPage: React.FC = () => {
         </div>
       ) : products.length === 0 ? (
         /* Empty Catalog - First Run State */
-        <div className="kirana-card p-8 sm:p-12 text-center max-w-lg mx-auto my-6 space-y-4">
+        <div className="kirana-card p-8 sm:p-12 text-center max-w-lg mx-auto my-6 space-y-4" data-testid="empty-catalog-state">
           <div className="w-16 h-16 bg-kirana-50 text-kirana-700 rounded-2xl mx-auto flex items-center justify-center">
             <Boxes className="w-8 h-8" />
           </div>
@@ -367,6 +388,7 @@ export const InventoryPage: React.FC = () => {
               onClick={handleSeedSampleData}
               disabled={isSeeding}
               className="gap-2 font-bold w-full sm:w-auto shadow-sm"
+              data-testid="load-sample-products-button"
             >
               {isSeeding ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -487,6 +509,7 @@ export const InventoryPage: React.FC = () => {
                       value={stockToAdd}
                       onChange={(e) => setStockToAdd(e.target.value)}
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-kirana-500"
+                      data-testid="quick-restock-quantity-input"
                     />
 
                     {/* Quick increment pills */}
@@ -536,6 +559,7 @@ export const InventoryPage: React.FC = () => {
                       size="sm"
                       disabled={isAddingStock}
                       className="gap-1 font-bold"
+                      data-testid="confirm-quick-restock-button"
                     >
                       {isAddingStock ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />

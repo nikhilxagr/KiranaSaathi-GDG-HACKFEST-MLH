@@ -79,10 +79,6 @@ export const SalesPage: React.FC = () => {
 
       if (existing) {
         const newQty = Number((existing.quantity + defaultIncrement).toFixed(2));
-        if (newQty > availableStock) {
-          setValidationWarning(t('errStockExceeded'));
-          return prev;
-        }
         return prev.map((item) =>
           item.product.id === product.id
             ? {
@@ -105,6 +101,29 @@ export const SalesPage: React.FC = () => {
     });
   };
 
+  // Directly set cart quantity from number input (supports fractional e.g. 2.5 kg, and tests for insufficient stock)
+  const handleSetQuantity = (productId: number, rawQty: number) => {
+    setValidationWarning(null);
+    setSaleError(null);
+
+    if (isNaN(rawQty) || rawQty <= 0) return;
+    const cleanQty = Number(rawQty.toFixed(2));
+
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id === productId) {
+          const price = item.product.sellingPrice ?? 0;
+          return {
+            ...item,
+            quantity: cleanQty,
+            subtotal: Math.round(cleanQty * price),
+          };
+        }
+        return item;
+      })
+    );
+  };
+
   // Adjust quantity (+ or -) with fractional increment awareness
   const handleAdjustQuantity = (productId: number, delta: number) => {
     setValidationWarning(null);
@@ -114,13 +133,8 @@ export const SalesPage: React.FC = () => {
       return prev
         .map((item) => {
           if (item.product.id === productId) {
-            const availableStock = item.product.quantity ?? item.product.currentStock ?? 0;
             const price = item.product.sellingPrice ?? 0;
             const newQty = Number(Math.max(0, item.quantity + delta).toFixed(2));
-            if (newQty > availableStock) {
-              setValidationWarning(t('errStockExceeded'));
-              return item;
-            }
             return {
               ...item,
               quantity: newQty,
@@ -173,7 +187,7 @@ export const SalesPage: React.FC = () => {
         err?.message ||
           (language === 'hi'
             ? 'बिक्री दर्ज करने में त्रुटि हुई। कृपया स्टॉक जांचें।'
-            : 'Failed to record sale. Please verify available stock.')
+            : 'Failed to record sale. Insufficient stock.')
       );
       // Cart items are RETAINED so shopkeeper doesn't lose order data
     } finally {
@@ -182,7 +196,7 @@ export const SalesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="sales-page">
       {/* 1. Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
@@ -193,7 +207,10 @@ export const SalesPage: React.FC = () => {
 
       {/* Validation Banner */}
       {validationWarning && (
-        <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2">
+        <div
+          className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-center justify-between gap-2"
+          data-testid="validation-warning-banner"
+        >
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-amber-700" />
             <span className="font-bold">{validationWarning}</span>
@@ -204,9 +221,12 @@ export const SalesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Transaction Error Alert */}
+      {/* Transaction Error Alert (Insufficient stock / invalid sale) */}
       {saleError && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center justify-between gap-2 shadow-xs">
+        <div
+          className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs flex items-center justify-between gap-2 shadow-xs"
+          data-testid="sale-error-banner"
+        >
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-rose-700" />
             <span className="font-bold">{saleError}</span>
@@ -232,6 +252,7 @@ export const SalesPage: React.FC = () => {
                 language === 'hi' ? 'सामान खोजें और जोड़ें...' : 'Search items to add...'
               }
               className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-white"
+              data-testid="product-search-input"
             />
           </div>
 
@@ -266,6 +287,7 @@ export const SalesPage: React.FC = () => {
                   key={product.id}
                   onClick={() => handleAddToCart(product)}
                   disabled={isOutOfStock}
+                  data-testid={`product-card-${product.name}`}
                   className={`kirana-card p-3 text-left transition-all relative flex flex-col justify-between active:scale-[0.98] select-none ${
                     isOutOfStock
                       ? 'opacity-40 bg-slate-100 cursor-not-allowed border-dashed'
@@ -300,6 +322,7 @@ export const SalesPage: React.FC = () => {
                     </div>
 
                     <span
+                      data-testid={`stock-${product.name}`}
                       className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                         isOutOfStock
                           ? 'bg-rose-100 text-rose-800'
@@ -332,6 +355,7 @@ export const SalesPage: React.FC = () => {
                   <button
                     onClick={handleClearCart}
                     className="text-xs text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1"
+                    data-testid="clear-cart-button"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>{t('btnClearCart')}</span>
@@ -346,10 +370,12 @@ export const SalesPage: React.FC = () => {
                     const isFractional =
                       item.product.unit === 'kg' || item.product.unit === 'litre';
                     const price = item.product.sellingPrice ?? 0;
+                    const stock = item.product.quantity ?? item.product.currentStock ?? 0;
 
                     return (
                       <div
                         key={item.product.id}
+                        data-testid={`cart-item-${item.product.name}`}
                         className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2"
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -360,7 +386,7 @@ export const SalesPage: React.FC = () => {
                                 : item.product.name}
                             </h4>
                             <span className="text-[11px] text-slate-500 block">
-                              ₹{price} / {item.product.unit}
+                              ₹{price} / {item.product.unit} (उपलब्ध: {stock} {item.product.unit})
                             </span>
                           </div>
                           <span className="font-extrabold text-sm text-slate-900 shrink-0">
@@ -368,7 +394,7 @@ export const SalesPage: React.FC = () => {
                           </span>
                         </div>
 
-                        {/* Quantity Controls (With Fractional Steps) */}
+                        {/* Quantity Controls: Direct Input + Steppers */}
                         <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
                           {/* Unit Buttons */}
                           <div className="flex items-center gap-1">
@@ -397,7 +423,7 @@ export const SalesPage: React.FC = () => {
                             </button>
                           </div>
 
-                          {/* Stepper (+ / -) */}
+                          {/* Direct Input + Stepper */}
                           <div className="flex items-center gap-1.5">
                             <button
                               type="button"
@@ -413,9 +439,23 @@ export const SalesPage: React.FC = () => {
                               <Minus className="w-3.5 h-3.5" />
                             </button>
 
-                            <span className="min-w-[40px] text-center text-xs font-extrabold text-slate-900">
-                              {item.quantity} {item.product.unit}
-                            </span>
+                            {/* Direct Number Input allows typing exact 2.5 kg or testing insufficient stock */}
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step="any"
+                                min="0.1"
+                                value={item.quantity}
+                                onChange={(e) =>
+                                  handleSetQuantity(item.product.id!, parseFloat(e.target.value))
+                                }
+                                className="w-14 px-1.5 py-0.5 text-center text-xs font-extrabold rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-kirana-500"
+                                data-testid={`cart-quantity-input-${item.product.name}`}
+                              />
+                              <span className="text-[11px] font-bold text-slate-500">
+                                {item.product.unit}
+                              </span>
+                            </div>
 
                             <button
                               type="button"
@@ -504,7 +544,10 @@ export const SalesPage: React.FC = () => {
                 {/* Total Row */}
                 <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 text-white">
                   <span className="text-xs font-medium text-slate-300">{t('totalBill')}</span>
-                  <span className="text-xl font-extrabold text-emerald-400">
+                  <span
+                    className="text-xl font-extrabold text-emerald-400"
+                    data-testid="cart-total-amount"
+                  >
                     ₹{totalAmount.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -517,6 +560,7 @@ export const SalesPage: React.FC = () => {
                   disabled={isSubmitting}
                   className="font-bold gap-2 shadow-md shadow-kirana-700/20"
                   onClick={handleConfirmSale}
+                  data-testid="confirm-sale-button"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -539,7 +583,10 @@ export const SalesPage: React.FC = () => {
 
       {/* Official Offline Receipt Modal Dialog */}
       {confirmedTransaction && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4"
+          data-testid="receipt-modal"
+        >
           <div className="kirana-card w-full max-w-md p-6 bg-white animate-in fade-in zoom-in-95 duration-150">
             <div className="text-center pb-4 border-b border-dashed border-slate-200">
               <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full mx-auto flex items-center justify-center mb-2">
@@ -549,7 +596,10 @@ export const SalesPage: React.FC = () => {
                 {t('receiptTitle')}
               </h2>
               <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold text-[11px]">
+                <span
+                  className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold text-[11px]"
+                  data-testid="receipt-number"
+                >
                   {confirmedTransaction.receiptNumber || `KS-${confirmedTransaction.id}`}
                 </span>
                 <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[10px]">
@@ -581,7 +631,9 @@ export const SalesPage: React.FC = () => {
               })}
               <div className="pt-2 flex justify-between font-extrabold text-sm text-slate-900 border-t border-slate-100">
                 <span>{t('totalBill')}</span>
-                <span className="text-kirana-800">₹{confirmedTransaction.totalAmount ?? 0}</span>
+                <span className="text-kirana-800 font-extrabold" data-testid="receipt-total">
+                  ₹{confirmedTransaction.totalAmount ?? 0}
+                </span>
               </div>
               <div className="flex justify-between text-slate-500 text-[11px]">
                 <span>भुगतान मोड (Mode):</span>
@@ -604,6 +656,7 @@ export const SalesPage: React.FC = () => {
                 fullWidth
                 onClick={() => setConfirmedTransaction(null)}
                 className="font-bold"
+                data-testid="new-sale-button"
               >
                 {t('btnNewSale')}
               </Button>

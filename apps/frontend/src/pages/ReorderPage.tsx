@@ -156,6 +156,7 @@ export const ReorderPage: React.FC = () => {
       <div className="flex items-center gap-2 border-b border-slate-200">
         <button
           onClick={() => setActiveTab('lowStock')}
+          data-testid="low-stock-tab"
           className={`touch-target px-4 py-2.5 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === 'lowStock'
               ? 'border-amber-600 text-amber-900'
@@ -171,6 +172,7 @@ export const ReorderPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('slowMoving')}
+          data-testid="slow-moving-tab"
           className={`touch-target px-4 py-2.5 font-bold text-sm border-b-2 transition-colors flex items-center gap-2 ${
             activeTab === 'slowMoving'
               ? 'border-blue-600 text-blue-900'
@@ -187,7 +189,7 @@ export const ReorderPage: React.FC = () => {
 
       {/* 3. Tab Content: Urgent Low-Stock Items */}
       {activeTab === 'lowStock' && (
-        <div className="space-y-3">
+        <div className="space-y-3" data-testid="low-stock-list">
           {/* Note Banner */}
           <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 flex items-center justify-between">
             <span className="font-medium">
@@ -212,6 +214,7 @@ export const ReorderPage: React.FC = () => {
                 return (
                   <div
                     key={product.id}
+                    data-testid={`low-stock-item-${product.name}`}
                     className="kirana-card p-4 border-amber-300 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
                   >
                     {/* Item Information */}
@@ -245,7 +248,10 @@ export const ReorderPage: React.FC = () => {
                       <div className="flex items-center gap-4 mt-2 text-xs text-slate-600">
                         <span>
                           {language === 'hi' ? 'मौजूदा स्टॉक:' : 'Current:'}{' '}
-                          <strong className={isZeroStock ? 'text-rose-700' : 'text-amber-800'}>
+                          <strong
+                            data-testid={`current-stock-${product.name}`}
+                            className={isZeroStock ? 'text-rose-700' : 'text-amber-800'}
+                          >
                             {stock} {product.unit}
                           </strong>
                         </span>
@@ -266,7 +272,10 @@ export const ReorderPage: React.FC = () => {
                           <Sparkles className="w-3 h-3 text-amber-600" />
                           {t('suggestedReorder')}
                         </span>
-                        <span className="text-lg font-extrabold text-kirana-800">
+                        <span
+                          data-testid={`suggested-reorder-${product.name}`}
+                          className="text-lg font-extrabold text-kirana-800"
+                        >
                           +{suggestedQty} {product.unit}
                         </span>
                         <span className="text-[10px] text-slate-400 block">
