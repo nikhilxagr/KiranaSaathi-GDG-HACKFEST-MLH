@@ -1,3 +1,5 @@
+import { isMongoConnected } from '../db/mongodb';
+
 export interface HealthStatus {
   success: boolean;
   status: 'ok' | 'degraded' | 'error';
@@ -5,6 +7,7 @@ export interface HealthStatus {
   appName: string;
   version: string;
   environment: string;
+  mongodb: 'connected' | 'disconnected';
   timestamp: string;
   uptimeSeconds: number;
 }
@@ -24,6 +27,7 @@ export const getHealthStatus = (environment: string): HealthStatus => {
     appName: 'KiranaSathi',
     version: '0.1.0',
     environment,
+    mongodb: isMongoConnected() ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
   };

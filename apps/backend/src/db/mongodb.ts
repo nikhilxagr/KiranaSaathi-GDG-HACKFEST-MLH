@@ -2,27 +2,61 @@ import mongoose from 'mongoose';
 import { env } from '../utils/env';
 
 let isConnected = false;
+let lastError: string | null = null;
 
-export const connectMongoDB = async (): Promise<boolean> => {
-  if (isConnected) return true;
-
+/**
+ * Mask credentials in MongoDB connection string for safe logging and display
+ */
+export const maskMongoUri = (uri: string): string => {
   try {
-    mongoose.set('strictQuery', false);
-    await mongoose.connect(env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 3000,
-      connectTimeoutMS: 3000,
-    });
-    isConnected = true;
-    console.log(`[MongoDB] Connected successfully to ${env.MONGODB_URI}`);
-    return true;
-  } catch (error: any) {
-    isConnected = false;
-    console.warn(`[MongoDB] Unable to connect (${error?.message || 'timeout'}). Server running in resilient hybrid mode.`);
-    return false;
+    return uri.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+  } catch {
+    return 'mongodb://***';
   }
 };
 
-export const isMongoConnected = (): boolean => isConnected;
+export const connectMongoDB = async (
+  customUri?: string
+): Promise<{ success: boolean; message: string }> => {
+  if (isConnected && mongoose.connection.readyState === 1) {
+    return { success: true, message: 'Already connected to MongoDB.' };
+  }
+
+  const uri = customUri || env.MONGODB_URI;
+  const masked = maskMongoUri(uri);
+
+  try {
+    mongoose.set('strictQuery', false);
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 4000,
+      connectTimeoutMS: 4000,
+    });
+
+    isConnected = true;
+    lastError = null;
+    console.log(`[MongoDB] Connected successfully to ${masked}`);
+    return { success: true, message: `Connected to MongoDB (${masked})` };
+  } catch (error: any) {
+    isConnected = false;
+    lastError = error?.message || 'Connection failed or timed out';
+    console.warn(`[MongoDB] Unable to connect to ${masked}: ${lastError}`);
+    return { success: false, message: lastError || 'Connection failed or timed out' };
+  }
+};
+
+export const isMongoConnected = (): boolean =>
+  isConnected && mongoose.connection.readyState === 1;
+
+export const getMongoStatus = () => {
+  return {
+    connected: isMongoConnected(),
+    readyState: mongoose.connection.readyState,
+    host: mongoose.connection.host || null,
+    dbName: mongoose.connection.name || null,
+    uri: maskMongoUri(env.MONGODB_URI),
+    lastError,
+  };
+};
 
 export const disconnectMongoDB = async (): Promise<void> => {
   if (isConnected) {
