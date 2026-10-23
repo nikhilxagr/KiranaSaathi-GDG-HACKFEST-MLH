@@ -8,19 +8,30 @@ import { env } from './utils/env';
 export const createApp = (): Express => {
   const app = express();
 
-  // Configure explicit CORS origins
-  const allowedOrigins = [
-    env.FRONTEND_URL,
+  // Configure explicit CORS origins (supports configured URL, comma-separated list, and Vercel domains)
+  const configuredOrigins = (env.FRONTEND_URL || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const localOrigins = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'http://localhost:3000',
-  ].filter(Boolean);
+    'http://localhost:4173',
+  ];
 
   app.use(
     cors({
       origin: (origin, callback) => {
         // Permit requests with no origin (e.g. server-to-server, curl, mobile native or test runner)
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) return callback(null, true);
+
+        // Allow explicitly configured origins, local dev servers, or any vercel.app deployment
+        const isVercelDomain = /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.vercel\.app$/i.test(origin);
+        const isConfigured = configuredOrigins.includes(origin) || localOrigins.includes(origin);
+
+        if (isConfigured || isVercelDomain) {
           callback(null, true);
         } else {
           callback(new Error(`CORS blocked for origin: ${origin}`));

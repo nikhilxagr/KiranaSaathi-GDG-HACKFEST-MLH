@@ -19,7 +19,8 @@
     "test:backend": "npm run test --workspace=backend",
     "typecheck": "npm run typecheck:backend && npm run typecheck:frontend",
     "typecheck:frontend": "npm run typecheck --workspace=frontend",
-    "typecheck:backend": "npm run typecheck --workspace=backend"
+    "typecheck:backend": "npm run typecheck --workspace=backend",
+    "start:backend": "npm run start --workspace=backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
