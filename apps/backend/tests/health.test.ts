@@ -29,6 +29,20 @@ describe('Phase 3: Backend API, Health Endpoints, and Middleware', () => {
     expect(res.body).toHaveProperty('timestamp');
   });
 
+  // Test 2b: GET /api/health/db returns structured db connectivity without leaking secrets
+  it('2b. GET /api/health/db returns structured connectivity without credentials', async () => {
+    const res = await request(app).get('/api/health/db');
+
+    // May be 200 (connected) or 503 (offline fallback during isolated unit tests)
+    expect([200, 503]).toContain(res.status);
+    expect(typeof res.body.connected).toBe('boolean');
+    expect(res.body).toHaveProperty('status');
+    expect(res.body).toHaveProperty('readyState');
+    expect(res.body).toHaveProperty('timestamp');
+    expect(res.body).not.toHaveProperty('password');
+    expect(res.body).not.toHaveProperty('stack');
+  });
+
   // Test 3: Root discovery endpoint
   it('3. GET / returns 200 with service discovery metadata', async () => {
     const res = await request(app).get('/');
@@ -36,12 +50,14 @@ describe('Phase 3: Backend API, Health Endpoints, and Middleware', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('success', true);
     expect(res.body).toHaveProperty('healthCheck', '/api/health');
+    expect(res.body).toHaveProperty('dbHealthCheck', '/api/health/db');
     expect(res.body).toHaveProperty('readinessCheck', '/api/health/ready');
   });
 
   // Test 4: Unknown routes return 404 with consistent error format
   it('4. Unknown API routes return 404 with consistent error message', async () => {
     const res = await request(app).get('/api/non-existent-route-404');
+
 
     expect(res.status).toBe(404);
     expect(res.body).toHaveProperty('success', false);

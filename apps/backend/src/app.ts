@@ -56,6 +56,7 @@ export const createApp = (): Express => {
       version: '0.1.0',
       description: 'Backend API service for KiranaSathi',
       healthCheck: '/api/health',
+      dbHealthCheck: '/api/health/db',
       readinessCheck: '/api/health/ready',
     });
   });
