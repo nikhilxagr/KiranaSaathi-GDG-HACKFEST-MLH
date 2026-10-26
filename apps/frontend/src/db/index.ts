@@ -1,14 +1,15 @@
 import Dexie, { type Table } from 'dexie';
-import { Product, Sale, StockMovement } from '../types';
+import { Product, Sale, StockMovement, Supplier } from '../types';
 
 /**
  * Offline-First IndexedDB Database for KiranaSathi using Dexie.js
- * Version 2: Introduces full tables for Products, Sales, and StockMovement ledgers.
+ * Version 3: Adds Supplier management and reorder tracking.
  */
 export class KiranaDatabase extends Dexie {
   products!: Table<Product, number>;
   sales!: Table<Sale, number>;
   stockMovements!: Table<StockMovement, number>;
+  suppliers!: Table<Supplier, string>;
 
   constructor(dbName = 'KiranaSathiDB') {
     super(dbName);
@@ -41,6 +42,19 @@ export class KiranaDatabase extends Dexie {
               product.createdAt = product.updatedAt || new Date().toISOString();
             }
           });
+      });
+
+    // Schema Version 3 (Phase 6: Wholesale Suppliers & Smart Reorder Intelligence)
+    this.version(3)
+      .stores({
+        products: '++id, name, category, quantity, minimumStock, supplierId, createdAt, updatedAt',
+        sales: '++id, receiptNumber, createdAt, totalAmount, paymentMethod',
+        stockMovements: '++id, productId, type, createdAt, saleId',
+        suppliers: 'id, name, createdAt',
+      })
+      .upgrade((_tx) => {
+        // Safe migration: preserves all existing products, sales, and stockMovements.
+        // New suppliers table initialized and products table gains optional supplierId index.
       });
   }
 }

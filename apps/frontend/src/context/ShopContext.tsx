@@ -12,6 +12,8 @@ import {
   ShopPreferences,
   Language,
   SaleCartItem,
+  Supplier,
+  ReorderRecommendation,
 } from '../types';
 import {
   getAllProducts,
@@ -19,6 +21,7 @@ import {
   updateProduct as dbUpdateProduct,
   addStock as dbAddStock,
   adjustStock as dbAdjustStock,
+  receiveStock as dbReceiveStock,
   seedInitialSampleData,
   resetDatabaseToSampleData,
   getSlowMovingAnalysis,
@@ -27,6 +30,15 @@ import {
   recordSale as dbRecordSale,
   getAllSales,
 } from '../services/salesService';
+import {
+  getAllSuppliers,
+  addSupplier as dbAddSupplier,
+  updateSupplier as dbUpdateSupplier,
+  deleteSupplier as dbDeleteSupplier,
+  assignSupplierToProduct as dbAssignSupplier,
+  seedInitialSuppliers,
+} from '../services/supplierService';
+import { getReorderRecommendations } from '../services/reorderService';
 import { Translations, t } from '../i18n';
 
 interface SlowMovingItem {
@@ -41,6 +53,8 @@ interface ShopContextType {
   products: Product[];
   sales: Sale[];
   transactions: Sale[]; // Backward compatibility alias
+  suppliers: Supplier[];
+  reorderRecommendations: ReorderRecommendation[];
   preferences: ShopPreferences;
   language: Language;
   isLoading: boolean;
@@ -55,6 +69,7 @@ interface ShopContextType {
   updateProduct: (id: number, updates: Partial<Omit<Product, 'id' | 'createdAt'>>) => Promise<Product>;
   addStock: (productId: number, quantityToAdd: number, note?: string) => Promise<Product>;
   adjustStock: (productId: number, newQuantity: number, reason?: string) => Promise<Product>;
+  receiveStock: (productId: number, quantity: number, note?: string) => Promise<Product>;
   recordRealSale: (
     items: { productId: number; quantity: number }[],
     paymentMethod?: 'cash' | 'upi' | 'credit_udhaar'
@@ -66,6 +81,20 @@ interface ShopContextType {
   seedSampleCatalog: () => Promise<number>;
   resetToSampleData: () => Promise<number>;
   refreshData: () => Promise<void>;
+
+  // Supplier Management
+  addSupplier: (
+    data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Promise<Supplier>;
+  updateSupplier: (
+    id: string,
+    updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>
+  ) => Promise<Supplier>;
+  deleteSupplier: (id: string) => Promise<void>;
+  assignSupplier: (
+    productId: number,
+    supplierId: string | undefined
+  ) => Promise<Product>;
 
   // Translation helper
   t: (key: keyof Translations) => string;
@@ -97,6 +126,8 @@ const ShopContext = createContext<ShopContextType | undefined>(undefined);
 export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [reorderRecommendations, setReorderRecommendations] = useState<ReorderRecommendation[]>([]);
   const [slowMovingAnalysis, setSlowMovingAnalysis] = useState<SlowMovingItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -143,7 +174,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     savePreferences({ ...preferences, ownerName: name });
   };
 
-  // Reactive data loader from IndexedDB + MongoDB sync
+  // Reactive data loader from IndexedDB
   const refreshData = useCallback(async () => {
     try {
       const [allProducts, allSales] = await Promise.all([
@@ -161,6 +192,18 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setSales(allSales);
+
+      // Load or seed wholesale suppliers
+      let allSuppliers = await getAllSuppliers();
+      if (allSuppliers.length === 0) {
+        await seedInitialSuppliers();
+        allSuppliers = await getAllSuppliers();
+      }
+      setSuppliers(allSuppliers);
+
+      // Compute typed reorder recommendations using deterministic engine
+      const recommendations = await getReorderRecommendations();
+      setReorderRecommendations(recommendations);
 
       // Analyze slow moving inventory from real sale records
       const slowAnalysis = await getSlowMovingAnalysis();
@@ -215,6 +258,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return saved;
   };
 
+  const receiveStock = async (
+    productId: number,
+    quantity: number,
+    note?: string
+  ): Promise<Product> => {
+    const saved = await dbReceiveStock(productId, quantity, note);
+    await refreshData();
+    return saved;
+  };
+
   const recordRealSale = async (
     items: { productId: number; quantity: number }[],
     paymentMethod: 'cash' | 'upi' | 'credit_udhaar' = 'cash'
@@ -233,6 +286,38 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
       items.map((i) => ({ productId: i.product.id!, quantity: i.quantity })),
       paymentMethod
     );
+  };
+
+  // Supplier Management Mutations
+  const addSupplier = async (
+    data: Omit<Supplier, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<Supplier> => {
+    const saved = await dbAddSupplier(data);
+    await refreshData();
+    return saved;
+  };
+
+  const updateSupplier = async (
+    id: string,
+    updates: Partial<Omit<Supplier, 'id' | 'createdAt'>>
+  ): Promise<Supplier> => {
+    const saved = await dbUpdateSupplier(id, updates);
+    await refreshData();
+    return saved;
+  };
+
+  const deleteSupplier = async (id: string): Promise<void> => {
+    await dbDeleteSupplier(id);
+    await refreshData();
+  };
+
+  const assignSupplier = async (
+    productId: number,
+    supplierId: string | undefined
+  ): Promise<Product> => {
+    const saved = await dbAssignSupplier(productId, supplierId);
+    await refreshData();
+    return saved;
   };
 
   const seedSampleCatalog = async (): Promise<number> => {
@@ -285,6 +370,8 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         products,
         sales,
         transactions: sales,
+        suppliers,
+        reorderRecommendations,
         preferences,
         language,
         isLoading,
@@ -295,11 +382,16 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateProduct,
         addStock,
         adjustStock,
+        receiveStock,
         recordRealSale,
         recordDemoSale,
         seedSampleCatalog,
         resetToSampleData,
         refreshData,
+        addSupplier,
+        updateSupplier,
+        deleteSupplier,
+        assignSupplier,
         t: translate,
         totalProducts,
         inStockCount,

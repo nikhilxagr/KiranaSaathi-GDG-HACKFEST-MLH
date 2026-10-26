@@ -75,7 +75,7 @@ export const useBackendHealth = (intervalMs = 45000): UseBackendHealthResult => 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Cleanup to prevent memory leaks
+    // Cleanup to prevent memory leaks and unmounted component warnings
     return () => {
       isMountedRef.current = false;
       clearInterval(intervalId);

@@ -16,23 +16,23 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const baseStyles =
-    'touch-target inline-flex items-center justify-center font-medium rounded-xl transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none shadow-sm';
+    'touch-target inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none shadow-xs focus-visible:ring-2 focus-visible:ring-kirana-700 focus-visible:ring-offset-2 focus-visible:outline-none';
 
   const sizeStyles = {
-    sm: 'text-sm px-3 py-2 min-h-[40px]',
-    md: 'text-base px-5 py-3 min-h-[48px]',
-    lg: 'text-lg px-6 py-4 min-h-[56px] font-semibold',
+    sm: 'text-xs sm:text-sm px-3 py-2 min-h-[44px]',
+    md: 'text-sm sm:text-base px-4 sm:px-5 py-2.5 sm:py-3 min-h-[48px]',
+    lg: 'text-base sm:text-lg px-6 py-3.5 min-h-[52px] font-bold',
   };
 
   const variantStyles = {
     primary:
-      'bg-kirana-600 text-white hover:bg-kirana-700 active:bg-kirana-800 shadow-kirana-600/20',
+      'bg-kirana-700 text-white hover:bg-kirana-800 active:bg-kirana-900 shadow-xs',
     secondary:
-      'bg-kirana-100 text-kirana-800 hover:bg-kirana-200 active:bg-kirana-300',
+      'bg-kirana-100 text-kirana-900 hover:bg-kirana-200 active:bg-kirana-300 border border-kirana-200',
     outline:
-      'border-2 border-slate-300 text-slate-700 hover:bg-slate-50 active:bg-slate-100',
+      'border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 active:bg-slate-100',
     saffron:
-      'bg-saffron-500 text-white hover:bg-saffron-600 active:bg-saffron-700 shadow-saffron-500/25',
+      'bg-saffron-600 text-white hover:bg-saffron-500 active:bg-saffron-600 shadow-xs',
   };
 
   const widthStyle = fullWidth ? 'w-full' : '';

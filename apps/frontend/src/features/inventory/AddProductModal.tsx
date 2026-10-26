@@ -15,12 +15,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
   onClose,
   productToEdit,
 }) => {
-  const { addProduct, updateProduct, t, language } = useShop();
+  const { addProduct, updateProduct, suppliers, t, language } = useShop();
 
   const [name, setName] = useState('');
   const [nameHindi, setNameHindi] = useState('');
   const [barcode, setBarcode] = useState('');
   const [category, setCategory] = useState<ProductCategory>('grains');
+  const [supplierId, setSupplierId] = useState<string>('');
   const [quantity, setQuantity] = useState<string>('10');
   const [unit, setUnit] = useState<ProductUnit>('kg');
   const [minimumStock, setMinimumStock] = useState<string>('5');
@@ -39,6 +40,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       setNameHindi(productToEdit.nameHindi || '');
       setBarcode(productToEdit.barcode || '');
       setCategory(productToEdit.category);
+      setSupplierId(productToEdit.supplierId || '');
       setQuantity(String(productToEdit.quantity ?? productToEdit.currentStock ?? 0));
       setUnit(productToEdit.unit);
       setMinimumStock(String(productToEdit.minimumStock ?? productToEdit.minThreshold ?? 0));
@@ -51,6 +53,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
       setNameHindi('');
       setBarcode('');
       setCategory('grains');
+      setSupplierId('');
       setQuantity('10');
       setUnit('kg');
       setMinimumStock('5');
@@ -101,6 +104,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           nameHindi: nameHindi.trim() || undefined,
           barcode: barcode.trim() || undefined,
           category,
+          supplierId: supplierId || undefined,
           quantity: parsedStock,
           unit,
           minimumStock: parsedThreshold,
@@ -113,6 +117,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
           nameHindi: nameHindi.trim() || undefined,
           barcode: barcode.trim() || undefined,
           category,
+          supplierId: supplierId || undefined,
           quantity: parsedStock,
           unit,
           minimumStock: parsedThreshold,
@@ -249,8 +254,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
             />
           </div>
 
-          {/* Category & Unit */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Category, Supplier & Unit */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label htmlFor="product-category" className="block text-xs font-bold text-slate-700 mb-1">
                 {t('fieldCategory')} *
@@ -270,6 +275,26 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
                 <option value="snacks">{t('catSnacks')}</option>
                 <option value="dairy">{t('catDairy')}</option>
                 <option value="household">{t('catHousehold')}</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="product-supplier" className="block text-xs font-bold text-slate-700 mb-1">
+                {t('supplierLabel')}
+              </label>
+              <select
+                id="product-supplier"
+                name="supplier"
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-white"
+                disabled={isSubmitting}
+                data-testid="product-supplier-select"
+              >
+                <option value="">{language === 'hi' ? 'कोई सप्लायर नहीं (None)' : 'None (Unassigned)'}</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
               </select>
             </div>
 

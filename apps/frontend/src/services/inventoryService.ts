@@ -114,6 +114,7 @@ export const addProduct = async (
     minimumStock: Number(input.minimumStock.toFixed(2)),
     costPrice: input.costPrice !== undefined ? Number(input.costPrice.toFixed(2)) : undefined,
     sellingPrice: input.sellingPrice !== undefined ? Number(input.sellingPrice.toFixed(2)) : undefined,
+    supplierId: input.supplierId || undefined,
     createdAt: now,
     updatedAt: now,
   };
@@ -167,11 +168,33 @@ export const updateProduct = async (
     ...existing,
     ...updates,
     id,
+    supplierId: updates.supplierId !== undefined ? updates.supplierId : existing.supplierId,
     updatedAt: now,
   };
 
   await database.products.put(updatedRecord);
   return normalizeProduct(updatedRecord);
+};
+
+/**
+ * Atomically receive purchased stock from a supplier.
+ * Validates positive quantity, updates product stock, and records a 'restock' movement.
+ */
+export const receiveStock = async (
+  productId: number,
+  quantityReceived: number,
+  note = 'Wholesale purchase receipt',
+  database: KiranaDatabase = db
+): Promise<Product> => {
+  if (
+    typeof quantityReceived !== 'number' ||
+    !Number.isFinite(quantityReceived) ||
+    quantityReceived <= 0
+  ) {
+    throw new Error('Received quantity must be a positive number greater than zero.');
+  }
+
+  return await addStock(productId, quantityReceived, note, database);
 };
 
 /**

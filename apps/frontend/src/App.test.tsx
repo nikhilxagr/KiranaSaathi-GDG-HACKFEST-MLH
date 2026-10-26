@@ -41,9 +41,12 @@ describe('KiranaSathi Phase 1 Production Frontend UI', () => {
     cleanup();
   });
 
-  it('renders default App without crashing', () => {
+  it('renders default App without crashing', async () => {
     const { container } = render(<App />);
     expect(container).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByTestId('backend-status-indicator')).toBeInTheDocument();
+    });
   });
 
   it('renders header brand, shop identity, and navigation tabs', async () => {

@@ -6,28 +6,54 @@
   html {
     -webkit-tap-highlight-color: transparent;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color-scheme: light;
   }
 
   body {
     background-color: #F8FAF7;
     color: #1E293B;
     overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Accessible high-contrast focus indicators */
+  :focus-visible {
+    outline: 2px solid #166534;
+    outline-offset: 2px;
   }
 }
 
-/* Accessible touch targets for mobile shopkeepers */
+/* Accessible touch targets for mobile shopkeepers (>= 44px min height/width) */
 .touch-target {
-  min-height: 48px;
-  min-width: 48px;
+  min-height: 44px;
+  min-width: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Clean Kirana Card styling */
+/* Clean, high-contrast Kirana Card design token */
 .kirana-card {
   background: #FFFFFF;
   border: 1px solid #E3E8DE;
   border-radius: 1rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
 }
+
+/* Safe area padding for mobile bottom bar and notches */
+.safe-area-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Respect user's motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

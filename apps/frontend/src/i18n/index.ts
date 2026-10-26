@@ -98,16 +98,41 @@ export interface Translations {
   payUpi: string;
   payCredit: string;
 
-  // Reorder
+  // Reorder & Suppliers
   reorderTitle: string;
   tabLowStock: string;
   tabSlowMoving: string;
+  tabSuppliers: string;
   suggestedReorder: string;
   btnOrderWhatsApp: string;
   btnCopyOrder: string;
   orderCopied: string;
   daysIdle: string;
   slowMovingAdvice: string;
+  btnManageSuppliers: string;
+  btnReceiveStock: string;
+  btnShareOrder: string;
+  filterAllSuppliers: string;
+  filterUnassigned: string;
+  supplierLabel: string;
+  supplierName: string;
+  supplierPhone: string;
+  leadTimeDaysLabel: string;
+  supplierNotes: string;
+  btnAddSupplier: string;
+  btnEditSupplier: string;
+  btnDeleteSupplier: string;
+  noSuppliers: string;
+  reorderReasonLabel: string;
+  modeThresholdLabel: string;
+  modeSalesAwareLabel: string;
+  receiveStockTitle: string;
+  receivedQuantityLabel: string;
+  newTotalStockLabel: string;
+  confirmReceiveStock: string;
+  orderPreviewTitle: string;
+  selectItemsToOrder: string;
+  selectedItemsCount: string;
 
   // Settings
   settingsTitle: string;
@@ -221,12 +246,37 @@ export const DICTIONARY: Record<Language, Translations> = {
     reorderTitle: 'पुनः ऑर्डर एवं सप्लायर सूची',
     tabLowStock: 'कम स्टॉक (तुरंत ऑर्डर)',
     tabSlowMoving: 'धीमी बिक्री (सुझाव)',
+    tabSuppliers: 'सप्लायर / डीलर सूची',
     suggestedReorder: 'सुझावित ऑर्डर',
     btnOrderWhatsApp: 'सप्लायर को WhatsApp पर भेजें',
     btnCopyOrder: 'ऑर्डर कॉपी करें',
     orderCopied: 'ऑर्डर टेक्स्ट कॉपी हो गया!',
     daysIdle: 'दिनों से नहीं बिका',
     slowMovingAdvice: 'सुझाव: नया स्टॉक कम मंगवाएं या काउंटर पर आगे रखें।',
+    btnManageSuppliers: 'सप्लायर प्रबंधन',
+    btnReceiveStock: 'स्टॉक प्राप्त करें',
+    btnShareOrder: 'ऑर्डर भेजें / साझा करें',
+    filterAllSuppliers: 'सभी सप्लायर',
+    filterUnassigned: 'बिना सप्लायर वाले',
+    supplierLabel: 'सप्लायर',
+    supplierName: 'सप्लायर का नाम',
+    supplierPhone: 'फोन नंबर',
+    leadTimeDaysLabel: 'डिलीवरी समय (दिन)',
+    supplierNotes: 'सप्लायर विवरण / नोट्स',
+    btnAddSupplier: 'नया सप्लायर जोड़ें',
+    btnEditSupplier: 'सप्लायर बदलें',
+    btnDeleteSupplier: 'सप्लायर हटाएं',
+    noSuppliers: 'कोई सप्लायर नहीं जोड़ा गया है।',
+    reorderReasonLabel: 'सुझाव का कारण',
+    modeThresholdLabel: 'न्यूनतम सीमा नियम',
+    modeSalesAwareLabel: 'मांग-आधारित गणना',
+    receiveStockTitle: 'सामान का नया स्टॉक प्राप्त करें',
+    receivedQuantityLabel: 'प्राप्त मात्रा',
+    newTotalStockLabel: 'नया कुल स्टॉक',
+    confirmReceiveStock: 'स्टॉक दर्ज करें',
+    orderPreviewTitle: 'होलसेल ऑर्डर पूर्वावलोकन',
+    selectItemsToOrder: 'ऑर्डर के लिए सामान चुनें',
+    selectedItemsCount: 'चुने गए सामान',
 
     settingsTitle: 'दुकान प्राथमिकताएं ও सेटिंग्स',
     languageSelectTitle: 'भाषा चुनें (Select Language)',
@@ -335,12 +385,37 @@ export const DICTIONARY: Record<Language, Translations> = {
     reorderTitle: 'Reorder & Supplier List',
     tabLowStock: 'Urgent Low Stock',
     tabSlowMoving: 'Slow Moving Advice',
+    tabSuppliers: 'Suppliers & Distributors',
     suggestedReorder: 'Suggested Reorder',
     btnOrderWhatsApp: 'Send Order via WhatsApp',
     btnCopyOrder: 'Copy Order List',
     orderCopied: 'Order list copied to clipboard!',
     daysIdle: 'days without sale',
     slowMovingAdvice: 'Tip: Consider promotional pricing or reduce next wholesale order.',
+    btnManageSuppliers: 'Manage Suppliers',
+    btnReceiveStock: 'Receive Stock',
+    btnShareOrder: 'Share / Send Order',
+    filterAllSuppliers: 'All Suppliers',
+    filterUnassigned: 'Unassigned Suppliers',
+    supplierLabel: 'Supplier',
+    supplierName: 'Supplier Name',
+    supplierPhone: 'Phone Number',
+    leadTimeDaysLabel: 'Lead Time (Days)',
+    supplierNotes: 'Notes & Terms',
+    btnAddSupplier: 'Add Supplier',
+    btnEditSupplier: 'Edit Supplier',
+    btnDeleteSupplier: 'Delete Supplier',
+    noSuppliers: 'No suppliers added yet.',
+    reorderReasonLabel: 'Reason for suggestion',
+    modeThresholdLabel: 'Minimum Threshold Rule',
+    modeSalesAwareLabel: 'Sales-Aware Demand',
+    receiveStockTitle: 'Receive Purchased Stock',
+    receivedQuantityLabel: 'Quantity Received',
+    newTotalStockLabel: 'New Total Stock',
+    confirmReceiveStock: 'Confirm & Save Stock',
+    orderPreviewTitle: 'Wholesale Order Preview',
+    selectItemsToOrder: 'Select items to prepare wholesale order',
+    selectedItemsCount: 'Selected Items',
 
     settingsTitle: 'Shop Preferences & Settings',
     languageSelectTitle: 'Select Language (भाषा)',

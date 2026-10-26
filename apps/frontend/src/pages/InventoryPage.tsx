@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useDeferredValue } from 'react';
 import {
   Search,
   PlusCircle,
@@ -20,9 +20,12 @@ import { AddProductModal } from '../features/inventory/AddProductModal';
 import { Product, ProductCategory } from '../types';
 
 export const InventoryPage: React.FC = () => {
-  const { products, isLoading, addStock, seedSampleCatalog, t, language } = useShop();
+  const { products, suppliers, isLoading, addStock, seedSampleCatalog, t, language } = useShop();
 
   const [searchQuery, setSearchQuery] = useState('');
+  // Use React deferred value so fast typing never lags the UI
+  const deferredSearch = useDeferredValue(searchQuery);
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showLowStockOnly, setShowLowStockOnly] = useState<boolean>(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -46,10 +49,10 @@ export const InventoryPage: React.FC = () => {
     { key: 'household', label: t('catHousehold') },
   ];
 
-  // Filtered product catalog
+  // Filtered product catalog using deferred search value
   const filteredProducts = useMemo(() => {
+    const q = deferredSearch.toLowerCase().trim();
     return products.filter((product) => {
-      const q = searchQuery.toLowerCase().trim();
       const nameMatch = product.name.toLowerCase().includes(q);
       const hindiMatch = (product.nameHindi || '').toLowerCase().includes(q);
       const barcodeMatch = product.barcode && product.barcode.includes(q);
@@ -64,7 +67,7 @@ export const InventoryPage: React.FC = () => {
 
       return matchesSearch && matchesCategory && matchesLowStock;
     });
-  }, [products, searchQuery, selectedCategory, showLowStockOnly]);
+  }, [products, deferredSearch, selectedCategory, showLowStockOnly]);
 
   // Overall catalog stock value
   const totalStockValue = useMemo(() => {
@@ -123,7 +126,7 @@ export const InventoryPage: React.FC = () => {
       setTimeout(() => {
         setStockActionProduct(null);
         setStockSuccessMsg(null);
-      }, 800);
+      }, 700);
     } catch (err) {
       console.error('Failed to add stock:', err);
     } finally {
@@ -150,13 +153,13 @@ export const InventoryPage: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             {t('inventoryTitle')}
           </h1>
-          <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
-            <span data-testid="total-products-count">
+          <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-600 font-medium">
+            <span data-testid="total-products-count" className="font-bold">
               {products.length} {language === 'hi' ? 'सामान दर्ज हैं' : 'total items'}
             </span>
             <span>•</span>
             <span className="flex items-center gap-1 font-semibold text-slate-700">
-              <DollarSign className="w-3 h-3 text-kirana-700" />
+              <DollarSign className="w-3.5 h-3.5 text-kirana-700" />
               {language === 'hi' ? 'अनुमानित मूल्य:' : 'Est. Value:'} ₹
               {Math.round(totalStockValue).toLocaleString('en-IN')}
             </span>
@@ -166,7 +169,7 @@ export const InventoryPage: React.FC = () => {
         <Button
           variant="primary"
           size="md"
-          className="gap-2 font-bold shrink-0 shadow-sm"
+          className="gap-2 font-bold shrink-0 shadow-xs"
           onClick={() => setIsAddModalOpen(true)}
           data-testid="add-product-button"
         >
@@ -185,13 +188,13 @@ export const InventoryPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-500 bg-surface/50"
+            className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-600 bg-white"
             data-testid="search-inventory-input"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
               aria-label="Clear Search"
             >
               <X className="w-4 h-4" />
@@ -200,14 +203,14 @@ export const InventoryPage: React.FC = () => {
         </div>
 
         {/* Quick Filter Buttons & Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
           {/* Low Stock Toggle Pill */}
           <button
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}
             className={`touch-target px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 border ${
               showLowStockOnly
                 ? 'bg-amber-600 text-white border-amber-600'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
             }`}
             data-testid="filter-low-stock-toggle"
           >
@@ -215,17 +218,17 @@ export const InventoryPage: React.FC = () => {
             <span>{t('filterLowStock')}</span>
           </button>
 
-          <span className="w-px h-5 bg-slate-200 shrink-0" />
+          <span className="w-px h-5 bg-slate-200 shrink-0 mx-0.5" />
 
           {/* Category Filter Pills */}
           {categories.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
-              className={`touch-target px-3 py-1.5 rounded-xl font-semibold whitespace-nowrap transition-colors border ${
+              className={`touch-target px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border ${
                 selectedCategory === cat.key
                   ? 'bg-kirana-700 text-white border-kirana-700'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
               }`}
             >
               {cat.label}
@@ -257,26 +260,22 @@ export const InventoryPage: React.FC = () => {
               <div
                 key={product.id || product.name}
                 data-testid={`product-card-${product.name}`}
-                className={`kirana-card p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                className={`kirana-card p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
                   isOutOfStock
                     ? 'border-rose-300 bg-rose-50/20'
                     : isLowStock
-                    ? 'border-amber-300 bg-amber-50/20'
+                    ? 'border-amber-300 bg-amber-50/25'
                     : 'hover:border-slate-300'
                 }`}
               >
                 {/* Product Name & Category */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                    <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <span className="text-[11px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                       {getCategoryLabel(product.category)}
                     </span>
                     {isOutOfStock ? (
-                      <Badge
-                        variant="warning"
-                        dot
-                        className="bg-rose-100 text-rose-800 border-rose-300"
-                      >
+                      <Badge variant="danger" dot>
                         {t('statusOutOfStock')}
                       </Badge>
                     ) : isLowStock ? (
@@ -289,28 +288,33 @@ export const InventoryPage: React.FC = () => {
                   </div>
 
                   <h3
-                    className="font-bold text-slate-900 text-sm sm:text-base leading-snug"
+                    className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug truncate"
                     data-testid={`product-title-${product.name}`}
                   >
                     {language === 'hi' ? product.nameHindi || product.name : product.name}
                   </h3>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 truncate">
                     {language === 'hi' ? product.name : product.nameHindi || ''}
                   </p>
+                  {product.supplierId && (
+                    <span className="inline-block mt-0.5 text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded">
+                      🚚 {suppliers.find((s) => s.id === product.supplierId)?.name || 'Supplier'}
+                    </span>
+                  )}
                 </div>
 
                 {/* Stock Details, Pricing & Actions */}
-                <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 flex-wrap">
                   {/* Stock Quantity */}
-                  <div className="text-left sm:text-right">
-                    <span className="text-xs text-slate-400 block">{t('colStock')}</span>
+                  <div className="text-left sm:text-right min-w-[70px]">
+                    <span className="text-[10px] text-slate-400 font-semibold block">{t('colStock')}</span>
                     <span
                       data-testid={`stock-${product.name}`}
-                      className={`text-base font-extrabold ${
+                      className={`text-sm sm:text-base font-extrabold ${
                         isOutOfStock
                           ? 'text-rose-700'
                           : isLowStock
-                          ? 'text-amber-700'
+                          ? 'text-amber-800'
                           : 'text-slate-900'
                       }`}
                     >
@@ -318,19 +322,19 @@ export const InventoryPage: React.FC = () => {
                     </span>
                     <span
                       data-testid={`min-stock-${product.name}`}
-                      className="text-[11px] text-slate-400 block"
+                      className="text-[10px] text-slate-400 block"
                     >
                       Min: {threshold} {product.unit}
                     </span>
                   </div>
 
                   {/* Price & Value */}
-                  <div className="text-right">
-                    <span className="text-xs text-slate-400 block">{t('colPrice')}</span>
-                    <span className="text-base font-extrabold text-slate-900">
+                  <div className="text-right min-w-[65px]">
+                    <span className="text-[10px] text-slate-400 font-semibold block">{t('colPrice')}</span>
+                    <span className="text-sm sm:text-base font-extrabold text-slate-900">
                       ₹{price}
                     </span>
-                    <span className="text-[11px] text-slate-500 block">
+                    <span className="text-[10px] text-slate-400 block">
                       Val: ₹{Math.round(itemValue).toLocaleString('en-IN')}
                     </span>
                   </div>
@@ -341,21 +345,21 @@ export const InventoryPage: React.FC = () => {
                       type="button"
                       onClick={() => handleOpenAddStock(product)}
                       title={language === 'hi' ? 'स्टॉक जोड़ें' : 'Add Stock'}
-                      className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-kirana-50 hover:border-kirana-400 text-slate-700 hover:text-kirana-800 transition-colors"
+                      className="touch-target p-2 rounded-xl border border-slate-300 bg-white hover:bg-kirana-50 hover:border-kirana-400 text-slate-800 hover:text-kirana-800 transition-colors shadow-2xs"
                       aria-label="Add Stock"
                       data-testid={`add-stock-btn-${product.name}`}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4 text-kirana-800" />
                     </button>
                     <button
                       type="button"
                       onClick={() => setEditingProduct(product)}
                       title={language === 'hi' ? 'उत्पाद बदलें' : 'Edit Product'}
-                      className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-900 transition-colors"
+                      className="touch-target p-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-800 transition-colors shadow-2xs"
                       aria-label="Edit Product"
                       data-testid={`edit-product-btn-${product.name}`}
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 className="w-4 h-4 text-slate-700" />
                     </button>
                   </div>
                 </div>
@@ -387,7 +391,7 @@ export const InventoryPage: React.FC = () => {
               size="md"
               onClick={handleSeedSampleData}
               disabled={isSeeding}
-              className="gap-2 font-bold w-full sm:w-auto shadow-sm"
+              className="gap-2 font-bold w-full sm:w-auto shadow-xs"
               data-testid="load-sample-products-button"
             >
               {isSeeding ? (
@@ -414,7 +418,7 @@ export const InventoryPage: React.FC = () => {
         </div>
       ) : (
         /* Filter Empty State */
-        <div className="kirana-card p-12 text-center max-w-md mx-auto my-6">
+        <div className="kirana-card p-10 text-center max-w-md mx-auto my-6">
           <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-2xl mx-auto flex items-center justify-center mb-3">
             <PackageX className="w-6 h-6" />
           </div>
@@ -459,8 +463,8 @@ export const InventoryPage: React.FC = () => {
 
       {/* Quick Add Stock Modal Dialog */}
       {stockActionProduct && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-          <div className="kirana-card w-full max-w-sm p-5 sm:p-6 bg-white animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="kirana-card w-full max-w-sm p-5 sm:p-6 bg-white animate-in fade-in zoom-in-95 duration-150 shadow-xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-base text-slate-900">
                 {language === 'hi' ? 'स्टॉक जोड़ें (Restock)' : 'Add Stock (Restock)'}
@@ -468,28 +472,28 @@ export const InventoryPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setStockActionProduct(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 p-1"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="py-3">
-              <p className="font-bold text-sm text-slate-800">
+              <p className="font-bold text-sm text-slate-900">
                 {language === 'hi'
                   ? stockActionProduct.nameHindi || stockActionProduct.name
                   : stockActionProduct.name}
               </p>
               <p className="text-xs text-slate-500 mt-0.5">
                 {language === 'hi' ? 'वर्तमान स्टॉक:' : 'Current Stock:'}{' '}
-                <strong className="text-slate-700">
+                <strong className="text-slate-800">
                   {stockActionProduct.quantity ?? stockActionProduct.currentStock ?? 0}{' '}
                   {stockActionProduct.unit}
                 </strong>
               </p>
 
               {stockSuccessMsg ? (
-                <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <div className="mt-3 p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>{stockSuccessMsg}</span>
                 </div>
@@ -508,7 +512,7 @@ export const InventoryPage: React.FC = () => {
                       required
                       value={stockToAdd}
                       onChange={(e) => setStockToAdd(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-kirana-500"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-kirana-600"
                       data-testid="quick-restock-quantity-input"
                     />
 
@@ -519,7 +523,7 @@ export const InventoryPage: React.FC = () => {
                           key={amt}
                           type="button"
                           onClick={() => setStockToAdd(String(amt))}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 hover:bg-kirana-50 hover:border-kirana-300 text-slate-700 transition-colors"
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-200 bg-slate-50 hover:bg-kirana-50 hover:border-kirana-300 text-slate-700 transition-colors"
                         >
                           +{amt}
                         </button>
@@ -540,7 +544,7 @@ export const InventoryPage: React.FC = () => {
                       }
                       value={stockNote}
                       onChange={(e) => setStockNote(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:ring-2 focus:ring-kirana-500"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-kirana-600"
                     />
                   </div>
 
