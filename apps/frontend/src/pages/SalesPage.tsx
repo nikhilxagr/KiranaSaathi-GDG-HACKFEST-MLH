@@ -23,6 +23,7 @@ import {
 import { useShop } from '../context/ShopContext';
 import { Button } from '../components/ui/Button';
 import { UpiQrCode } from '../components/ui/UpiQrCode';
+import { VoiceCounterAssistant } from '../components/ui/VoiceCounterAssistant';
 import { Product, SaleCartItem, Sale } from '../types';
 import {
   formatCustomerReceiptText,
@@ -71,13 +72,15 @@ export const SalesPage: React.FC = () => {
     });
   }, [products, deferredSearch, selectedCategory]);
 
-  // Add product to active cart
-  const handleAddToCart = (product: Product) => {
+  // Add product to active cart with quantity support
+  const handleAddToCart = (product: Product, quantityToAdd: number = 1) => {
     setValidationWarning(null);
     setSaleError(null);
 
     const availableStock = product.quantity ?? product.currentStock ?? 0;
     const price = product.sellingPrice ?? 0;
+    const cleanQtyToAdd =
+      isNaN(quantityToAdd) || quantityToAdd <= 0 ? 1 : Number(quantityToAdd.toFixed(2));
 
     if (availableStock <= 0) {
       setValidationWarning(
@@ -90,10 +93,9 @@ export const SalesPage: React.FC = () => {
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
-      const defaultIncrement = 1;
 
       if (existing) {
-        const newQty = Number((existing.quantity + defaultIncrement).toFixed(2));
+        const newQty = Number((existing.quantity + cleanQtyToAdd).toFixed(2));
         return prev.map((item) =>
           item.product.id === product.id
             ? {
@@ -108,8 +110,8 @@ export const SalesPage: React.FC = () => {
           ...prev,
           {
             product,
-            quantity: defaultIncrement,
-            subtotal: Math.round(defaultIncrement * price),
+            quantity: cleanQtyToAdd,
+            subtotal: Math.round(cleanQtyToAdd * price),
           },
         ];
       }
@@ -311,28 +313,39 @@ export const SalesPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* LEFT / TOP (Cols 1-7): Fast Product Picker */}
         <div className="lg:col-span-7 space-y-3">
-          {/* Quick Search */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                language === 'hi' ? 'सामान खोजें और जोड़ें...' : 'Search items to add...'
-              }
-              className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-600 bg-white"
-              data-testid="product-search-input"
+          {/* Quick Search & Voice Assistant */}
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={
+                  language === 'hi' ? 'सामान खोजें और जोड़ें...' : 'Search items to add...'
+                }
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-kirana-600 bg-white"
+                data-testid="product-search-input"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
+                  aria-label="Clear Search"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <VoiceCounterAssistant
+              products={products}
+              language={language}
+              onAddToCart={handleAddToCart}
+              onClearCart={handleClearCart}
+              onConfirmSale={handleConfirmSale}
+              onSearchQuery={(q) => setSearchQuery(q)}
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1"
-                aria-label="Clear Search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
           </div>
 
           {/* Category Filter Pills */}
