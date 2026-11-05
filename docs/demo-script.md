@@ -35,18 +35,19 @@ Use this high-impact script to demonstrate **KiranaSathi (किराना स
 
 ---
 
-### Step 2: Rapid Counter Billing & Dynamic UPI QR Code
+### Step 2: Voice-Assisted Counter Billing & Dynamic UPI QR Code
 1. Tap on the **बिक्री (Sales)** tab.
-2. Type `atta` or tap on **आशीर्वाद चक्की आटा (5 किग्रा)** and **बासमती चावल (खुला)** to add them to the counter basket.
-3. Notice:
-   - Real-time stock availability check.
-   - Increments of fractional units (`+0.5 kg` or `+1 pkt`).
-   - Sticky bottom tray showing total bill (e.g. `₹520.00`).
-4. Select the **UPI** payment mode button:
+2. Tap the **बोलें (Voice)** microphone button next to the search bar:
+   - **🎙️ BIGGEST HACKATHON "WOW" FACTOR**: The microphone pulses with a live recording indicator.
+   - Say into the microphone: *"2 पैकेट आटा"* or *"दो पैकेट मैगी"* (or in English *"2 packet atta"* / *"1 kg rice"*).
+   - The speech engine transcribes in real-time and instantaneously matches the catalog product, parses quantities and units (including Hindi numerals like *आधा*, *दो*, *ढाई*), and pops it right into the counter bill!
+   - Speak *"साफ करो"* / *"clear cart"* or *"बिल पक्का करो"* / *"confirm sale"* to demonstrate 100% hands-free billing.
+   - Explain to judges: *"Zero cloud latency, zero paid LLM API costs—runs completely in-browser with native speech recognition and localized phonetics."*
+3. Select the **UPI** payment mode button:
    - **✨ WOW FACTOR**: A live **Dynamic UPI QR Code** appears instantly on screen!
-   - It encodes the exact bill amount (`₹520.00`), the shop's name (*Radhe Kirana Store*), and the shopkeeper's UPI VPA.
+   - It encodes the exact bill amount (e.g. `₹520.00`), the shop's name (*Radhe Kirana Store*), and the shopkeeper's UPI VPA.
    - Tell the judges: *"Any customer can scan this with PhonePe, Google Pay, or Paytm directly from the counter phone."*
-5. Tap **बिक्री पक्की करें (Confirm Sale)**:
+4. Tap **बिक्री पक्की करें (Confirm Sale)**:
    - Commits atomically to IndexedDB with integer-safe paise math.
    - Decrements stock in real-time.
 
