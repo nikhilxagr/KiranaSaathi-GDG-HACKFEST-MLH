@@ -19,6 +19,7 @@ export const SettingsPage: React.FC = () => {
     setLanguage,
     setShopName,
     setOwnerName,
+    setUpiId,
     resetToSampleData,
     products,
     sales,
@@ -28,6 +29,7 @@ export const SettingsPage: React.FC = () => {
   const [shopNameInput, setShopNameInput] = useState(preferences.shopName);
   const [shopNameHindiInput, setShopNameHindiInput] = useState(preferences.shopNameHindi);
   const [ownerInput, setOwnerInput] = useState(preferences.ownerName);
+  const [upiIdInput, setUpiIdInput] = useState(preferences.upiId || 'radhekirana@upi');
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -39,6 +41,7 @@ export const SettingsPage: React.FC = () => {
       shopNameHindiInput.trim() || 'राधे किराना स्टोर'
     );
     setOwnerName(ownerInput.trim() || 'Ramesh Gupta');
+    setUpiId(upiIdInput.trim() || 'radhekirana@upi');
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
@@ -50,6 +53,7 @@ export const SettingsPage: React.FC = () => {
       setShopNameInput('Radhe Kirana Store');
       setShopNameHindiInput('राधे किराना स्टोर');
       setOwnerInput('Ramesh Gupta');
+      setUpiIdInput('radhekirana@upi');
       setResetSuccess(true);
       setTimeout(() => setResetSuccess(false), 2500);
     } catch (err) {
@@ -176,6 +180,24 @@ export const SettingsPage: React.FC = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">
+              {t('fieldUpiId')}
+            </label>
+            <input
+              type="text"
+              value={upiIdInput}
+              onChange={(e) => setUpiIdInput(e.target.value)}
+              placeholder={t('upiIdPlaceholder')}
+              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-kirana-500"
+            />
+            <span className="text-[11px] text-slate-500 mt-1 block">
+              {language === 'hi'
+                ? 'यह UPI ID काउंटर पर QR कोड बनाने के लिए उपयोग की जाएगी।'
+                : 'This UPI VPA will be encoded into dynamic counter payment QR codes.'}
+            </span>
+          </div>
+
           <div className="pt-2 flex justify-end">
             <Button type="submit" variant="primary" size="md" className="font-bold">
               {language === 'hi' ? 'जानकारी सेव करें' : 'Save Details'}
@@ -194,7 +216,7 @@ export const SettingsPage: React.FC = () => {
             </h2>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-            IndexedDB v2
+            IndexedDB v3
           </span>
         </div>
 

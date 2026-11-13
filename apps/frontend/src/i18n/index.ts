@@ -97,6 +97,14 @@ export interface Translations {
   payCash: string;
   payUpi: string;
   payCredit: string;
+  upiQrTitle: string;
+  btnSendBillWhatsApp: string;
+  btnCopyBill: string;
+  billCopied: string;
+  customerPhoneLabel: string;
+  customerPhonePlaceholder: string;
+  fieldUpiId: string;
+  upiIdPlaceholder: string;
 
   // Reorder & Suppliers
   reorderTitle: string;
@@ -242,6 +250,14 @@ export const DICTIONARY: Record<Language, Translations> = {
     payCash: 'नकद (Cash)',
     payUpi: 'UPI / क्यूआर कोड',
     payCredit: 'उधार (खाता)',
+    upiQrTitle: 'UPI QR भुगतान कोड',
+    btnSendBillWhatsApp: 'व्हाट्सएप पर बिल भेजें',
+    btnCopyBill: 'बिल कॉपी करें',
+    billCopied: 'बिल टेक्स्ट कॉपी हो गया!',
+    customerPhoneLabel: 'ग्राहक का व्हाट्सएप नंबर',
+    customerPhonePlaceholder: '10 अंकों का फोन नंबर दर्ज करें...',
+    fieldUpiId: 'दुकान का UPI ID (QR कोड के लिए)',
+    upiIdPlaceholder: 'उदा: 9820112345@upi या radhekirana@upi',
 
     reorderTitle: 'पुनः ऑर्डर एवं सप्लायर सूची',
     tabLowStock: 'कम स्टॉक (तुरंत ऑर्डर)',
@@ -381,6 +397,14 @@ export const DICTIONARY: Record<Language, Translations> = {
     payCash: 'Cash',
     payUpi: 'UPI / QR Code',
     payCredit: 'Customer Credit (Khata)',
+    upiQrTitle: 'UPI QR Payment Code',
+    btnSendBillWhatsApp: 'Send Bill on WhatsApp',
+    btnCopyBill: 'Copy Bill',
+    billCopied: 'Bill copied to clipboard!',
+    customerPhoneLabel: 'Customer WhatsApp Number',
+    customerPhonePlaceholder: 'Enter 10-digit mobile number...',
+    fieldUpiId: 'Shop UPI ID (for QR payment)',
+    upiIdPlaceholder: 'e.g. 9820112345@upi or radhekirana@upi',
 
     reorderTitle: 'Reorder & Supplier List',
     tabLowStock: 'Urgent Low Stock',

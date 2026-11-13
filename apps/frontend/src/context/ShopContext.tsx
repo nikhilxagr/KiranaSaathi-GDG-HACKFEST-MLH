@@ -61,6 +61,7 @@ interface ShopContextType {
   setLanguage: (lang: Language) => void;
   setShopName: (name: string, nameHindi?: string) => void;
   setOwnerName: (name: string) => void;
+  setUpiId: (upiId: string) => void;
 
   // Real IndexedDB Mutations
   addProduct: (
@@ -119,6 +120,7 @@ const defaultPreferences: ShopPreferences = {
   ownerName: 'Ramesh Gupta',
   language: 'hi',
   currencySymbol: '₹',
+  upiId: 'radhekirana@upi',
 };
 
 const ShopContext = createContext<ShopContextType | undefined>(undefined);
@@ -172,6 +174,10 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const setOwnerName = (name: string) => {
     savePreferences({ ...preferences, ownerName: name });
+  };
+
+  const setUpiId = (upiId: string) => {
+    savePreferences({ ...preferences, upiId });
   };
 
   // Reactive data loader from IndexedDB
@@ -378,6 +384,7 @@ export const ShopProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLanguage,
         setShopName,
         setOwnerName,
+        setUpiId,
         addProduct,
         updateProduct,
         addStock,

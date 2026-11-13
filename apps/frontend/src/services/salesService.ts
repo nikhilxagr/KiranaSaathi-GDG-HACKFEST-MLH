@@ -156,3 +156,83 @@ export const getRecentSales = async (
 ): Promise<Sale[]> => {
   return await database.sales.reverse().limit(limit).toArray();
 };
+
+/**
+ * Format an itemized customer receipt for WhatsApp / Text sharing
+ */
+export const formatCustomerReceiptText = (params: {
+  sale: Sale;
+  shopName: string;
+  shopNameHindi?: string;
+  ownerName?: string;
+  language?: 'hi' | 'en';
+}): string => {
+  const isHindi = params.language === 'hi';
+  const storeTitle = isHindi ? (params.shopNameHindi || params.shopName) : params.shopName;
+  const header = `🧾 *${storeTitle}*\n📍 ${isHindi ? 'डिजिटल बिल रसीद' : 'Digital Sales Receipt'}\n`;
+  const receiptNo = params.sale.receiptNumber ? `#${params.sale.receiptNumber}` : `#KS-${params.sale.id}`;
+  const dateStr = new Date(params.sale.createdAt || params.sale.timestamp || Date.now()).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const paymentLabel =
+    params.sale.paymentMethod === 'cash'
+      ? (isHindi ? 'नकद (Cash)' : 'Cash')
+      : params.sale.paymentMethod === 'upi'
+      ? (isHindi ? 'UPI / क्यूआर कोड' : 'UPI')
+      : (isHindi ? 'उधार (Khata)' : 'Customer Credit (Khata)');
+
+  const meta = `-----------------------------\n${isHindi ? 'रसीद संख्या' : 'Receipt'}: *${receiptNo}*\n${isHindi ? 'तारीख' : 'Date'}: ${dateStr}\n${isHindi ? 'भुगतान माध्यम' : 'Payment Mode'}: *${paymentLabel}*\n-----------------------------\n`;
+
+  const itemsList = params.sale.items
+    .map((item, idx) => {
+      const name = isHindi ? item.productNameHindi || item.productName : item.productName;
+      const rate = item.unitPrice ? ` × ₹${item.unitPrice}` : '';
+      const lineAmt = item.lineTotal ?? item.subtotal ?? (item.quantity * (item.unitPrice ?? 0));
+      return `${idx + 1}. *${name}*\n   ${item.quantity} ${item.unit}${rate} = *₹${lineAmt}*`;
+    })
+    .join('\n');
+
+  const total = `\n-----------------------------\n💰 *${isHindi ? 'कुल राशि (Total Bill)' : 'Grand Total'}*: *₹${params.sale.totalAmount ?? 0}*\n-----------------------------\n`;
+
+  const footer = `🙏 ${isHindi ? 'दुकान पर आने के लिए धन्यवाद!' : 'Thank you for shopping with us!'}\n📱 KiranaSathi - आपका भरोसेमंद डिजिटल साथी`;
+
+  return `${header}${meta}${itemsList}${total}${footer}`;
+};
+
+/**
+ * Builds a WhatsApp customer bill URL
+ */
+export const buildCustomerWhatsAppUrl = (
+  phone: string | undefined,
+  receiptText: string
+): string => {
+  const encoded = encodeURIComponent(receiptText);
+  if (!phone || !phone.trim()) {
+    return `https://wa.me/?text=${encoded}`;
+  }
+  const cleanPhone = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
+  const withCountryCode = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+  return `https://wa.me/${withCountryCode}?text=${encoded}`;
+};
+
+/**
+ * Generates an NPCI-standard UPI deep-link URL
+ */
+export const buildUpiPaymentUrl = (params: {
+  upiId: string;
+  shopName: string;
+  amount: number;
+  note?: string;
+}): string => {
+  const { upiId, shopName, amount, note } = params;
+  const cleanUpi = upiId.trim();
+  const cleanAmount = Number(amount.toFixed(2));
+  const encodedName = encodeURIComponent(shopName.trim());
+  const encodedNote = encodeURIComponent((note || `KiranaSathi Bill`).trim());
+  return `upi://pay?pa=${cleanUpi}&pn=${encodedName}&am=${cleanAmount.toFixed(2)}&cu=INR&tn=${encodedNote}`;
+};

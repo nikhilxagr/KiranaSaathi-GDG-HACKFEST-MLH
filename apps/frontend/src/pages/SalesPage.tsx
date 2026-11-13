@@ -14,13 +14,23 @@ import {
   AlertCircle,
   Loader2,
   ChevronDown,
+  Share2,
+  Copy,
+  Check,
+  Phone,
+  QrCode,
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { Button } from '../components/ui/Button';
+import { UpiQrCode } from '../components/ui/UpiQrCode';
 import { Product, SaleCartItem, Sale } from '../types';
+import {
+  formatCustomerReceiptText,
+  buildCustomerWhatsAppUrl,
+} from '../services/salesService';
 
 export const SalesPage: React.FC = () => {
-  const { products, recordRealSale, t, language } = useShop();
+  const { products, recordRealSale, preferences, t, language } = useShop();
 
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearch = useDeferredValue(searchQuery);
@@ -29,6 +39,8 @@ export const SalesPage: React.FC = () => {
   const [cart, setCart] = useState<SaleCartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'upi' | 'credit_udhaar'>('cash');
   const [confirmedTransaction, setConfirmedTransaction] = useState<Sale | null>(null);
+  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [receiptCopied, setReceiptCopied] = useState<boolean>(false);
   const [validationWarning, setValidationWarning] = useState<string | null>(null);
   const [saleError, setSaleError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -196,6 +208,30 @@ export const SalesPage: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Format customer receipt for WhatsApp / Text sharing
+  const getFormattedReceipt = (txn: Sale): string => {
+    return formatCustomerReceiptText({
+      sale: txn,
+      shopName: preferences.shopName,
+      shopNameHindi: preferences.shopNameHindi,
+      ownerName: preferences.ownerName,
+      language,
+    });
+  };
+
+  const handleCopyReceipt = (txn: Sale) => {
+    const text = getFormattedReceipt(txn);
+    navigator.clipboard.writeText(text);
+    setReceiptCopied(true);
+    setTimeout(() => setReceiptCopied(false), 2000);
+  };
+
+  const handleSendWhatsAppReceipt = (txn: Sale) => {
+    const text = getFormattedReceipt(txn);
+    const url = buildCustomerWhatsAppUrl(customerPhone, text);
+    window.open(url, '_blank');
   };
 
   return (
@@ -582,6 +618,19 @@ export const SalesPage: React.FC = () => {
                       <span>{t('payCredit')}</span>
                     </button>
                   </div>
+
+                  {/* Dynamic UPI QR Code for instant counter scanning */}
+                  {paymentMethod === 'upi' && totalAmount > 0 && (
+                    <div className="pt-2 animate-in fade-in zoom-in-95 duration-150">
+                      <UpiQrCode
+                        upiId={preferences.upiId || 'radhekirana@upi'}
+                        shopName={language === 'hi' ? preferences.shopNameHindi : preferences.shopName}
+                        amount={totalAmount}
+                        note={`Counter Bill #${Date.now().toString().slice(-4)}`}
+                        isCompact
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Grand Total */}
@@ -692,12 +741,72 @@ export const SalesPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Customer WhatsApp Digital Receipt Box */}
+            <div className="py-3 space-y-2 border-b border-dashed border-slate-200">
+              <label className="block text-[11px] font-bold text-slate-700">
+                {t('customerPhoneLabel')} (WhatsApp)
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder={t('customerPhonePlaceholder')}
+                    className="w-full pl-8 pr-2 py-1.5 rounded-xl border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-kirana-600 bg-white"
+                    data-testid="customer-phone-input"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => handleSendWhatsAppReceipt(confirmedTransaction)}
+                  className="gap-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shrink-0 shadow-xs"
+                  data-testid="send-whatsapp-receipt-btn"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>{t('btnSendBillWhatsApp')}</span>
+                </Button>
+              </div>
+
+              {/* Copy Bill Action */}
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleCopyReceipt(confirmedTransaction)}
+                  className="text-[11px] font-bold text-kirana-800 hover:text-kirana-950 flex items-center gap-1 hover:underline"
+                  data-testid="copy-receipt-btn"
+                >
+                  {receiptCopied ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-600" />
+                      <span className="text-emerald-700">{t('billCopied')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3 h-3 text-slate-500" />
+                      <span>{t('btnCopyBill')}</span>
+                    </>
+                  )}
+                </button>
+                <span className="text-[10px] text-slate-400">
+                  {language === 'hi' ? 'व्हाट्सएप डिजिटल पर्ची' : 'Instant WhatsApp Bill'}
+                </span>
+              </div>
+            </div>
+
             <div className="mt-5">
               <Button
                 variant="primary"
                 size="md"
                 fullWidth
-                onClick={() => setConfirmedTransaction(null)}
+                onClick={() => {
+                  setConfirmedTransaction(null);
+                  setCustomerPhone('');
+                  setReceiptCopied(false);
+                }}
                 className="font-bold"
                 data-testid="new-sale-button"
               >

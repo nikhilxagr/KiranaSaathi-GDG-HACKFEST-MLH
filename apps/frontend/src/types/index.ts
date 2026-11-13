@@ -181,6 +181,7 @@ export interface ShopPreferences {
   ownerName: string;
   language: Language;
   currencySymbol: string;
+  upiId?: string; // Shopkeeper UPI VPA for customer counter payments (e.g. 'radhekirana@upi')
 }
 
 export interface NavigationItem {
