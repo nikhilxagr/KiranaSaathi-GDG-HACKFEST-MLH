@@ -24,27 +24,30 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-surface-border">
-      <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
-        {/* Brand & Store Identity */}
-        <NavLink to="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-kirana-700 flex items-center justify-center text-white shadow-sm shadow-kirana-700/20 group-hover:bg-kirana-800 transition-colors shrink-0">
-            <Store className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight leading-none">
-                KiranaSathi
-              </span>
-              <span className="text-[11px] px-1.5 py-0.5 rounded bg-kirana-100 text-kirana-800 font-semibold font-['Noto_Sans_Devanagari']">
-                {language === 'hi' ? 'किराना साथी' : 'Assistant'}
-              </span>
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-surface-border w-full">
+      <div className="w-full max-w-[1700px] mx-auto px-3 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-2">
+        {/* Left Side: Brand Identity */}
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Brand & Store Identity */}
+          <NavLink to="/" className="flex items-center gap-2.5 group min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-kirana-700 flex items-center justify-center text-white shadow-sm shadow-kirana-700/20 group-hover:bg-kirana-800 transition-colors shrink-0">
+              <Store className="w-5 h-5" />
             </div>
-            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-              {language === 'hi' ? preferences.shopNameHindi : preferences.shopName}
-            </p>
-          </div>
-        </NavLink>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-extrabold text-base sm:text-lg text-slate-900 tracking-tight leading-none">
+                  KiranaSathi
+                </span>
+                <span className="text-[11px] px-1.5 py-0.5 rounded bg-kirana-100 text-kirana-800 font-semibold font-['Noto_Sans_Devanagari']">
+                  {language === 'hi' ? 'किराना साथी' : 'Assistant'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
+                {language === 'hi' ? preferences.shopNameHindi : preferences.shopName}
+              </p>
+            </div>
+          </NavLink>
+        </div>
 
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-1">
