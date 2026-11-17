@@ -54,6 +54,7 @@ export const App: React.FC = () => {
   return (
     <ShopProvider>
       <BrowserRouter
+        basename={import.meta.env.BASE_URL}
         future={{
           v7_startTransition: true,
           v7_relativeSplatPath: true,
