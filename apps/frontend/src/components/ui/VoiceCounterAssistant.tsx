@@ -156,7 +156,7 @@ export const VoiceCounterAssistant: React.FC<VoiceCounterAssistantProps> = ({
       {isListening && (
         <div
           data-testid="voice-listening-popover"
-          className="absolute top-12 left-0 z-40 bg-slate-900 text-white px-3.5 py-2.5 rounded-2xl shadow-xl border border-slate-700 w-64 sm:w-80 animate-in fade-in zoom-in-95"
+          className="absolute top-12 right-0 z-40 bg-slate-900 text-white px-3.5 py-2.5 rounded-2xl shadow-xl border border-slate-700 w-72 max-w-[calc(100vw-2rem)] animate-in fade-in zoom-in-95"
         >
           <div className="flex items-center justify-between pb-1 mb-1 border-b border-slate-800">
             <span className="text-[10px] font-extrabold uppercase text-emerald-400 tracking-wider flex items-center gap-1">
@@ -190,7 +190,7 @@ export const VoiceCounterAssistant: React.FC<VoiceCounterAssistantProps> = ({
       {feedback && (
         <div
           data-testid="voice-feedback-toast"
-          className={`absolute top-12 left-0 z-40 px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg border flex items-center gap-2 w-72 animate-in fade-in slide-in-from-top-1 ${
+          className={`absolute top-12 right-0 z-40 px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg border flex items-center gap-2 w-72 max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-top-1 ${
             feedbackType === 'success'
               ? 'bg-emerald-800 text-white border-emerald-600'
               : feedbackType === 'error'
