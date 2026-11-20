@@ -203,11 +203,11 @@ export const InventoryPage: React.FC = () => {
         </div>
 
         {/* Quick Filter Buttons & Category Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+        <div className="scroll-pills-row text-xs py-0.5">
           {/* Low Stock Toggle Pill */}
           <button
             onClick={() => setShowLowStockOnly(!showLowStockOnly)}
-            className={`touch-target px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 border ${
+            className={`shrink-0 touch-target px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors flex items-center gap-1.5 border shadow-2xs ${
               showLowStockOnly
                 ? 'bg-amber-600 text-white border-amber-600'
                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
@@ -218,14 +218,14 @@ export const InventoryPage: React.FC = () => {
             <span>{t('filterLowStock')}</span>
           </button>
 
-          <span className="w-px h-5 bg-slate-200 shrink-0 mx-0.5" />
+          <span className="w-px h-6 bg-slate-200 shrink-0 mx-0.5" />
 
           {/* Category Filter Pills */}
           {categories.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCategory(cat.key)}
-              className={`touch-target px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border ${
+              className={`shrink-0 touch-target px-3.5 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border shadow-2xs ${
                 selectedCategory === cat.key
                   ? 'bg-kirana-700 text-white border-kirana-700'
                   : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'

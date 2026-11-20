@@ -359,7 +359,7 @@ export const ReorderPage: React.FC = () => {
       </div>
 
       {/* 2. Top Navigation Tabs */}
-      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto scrollbar-none">
         <button
           onClick={() => setActiveTab('lowStock')}
           data-testid="low-stock-tab"
