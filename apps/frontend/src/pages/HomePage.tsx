@@ -434,15 +434,15 @@ export const HomePage: React.FC = () => {
           </div>
 
           {/* Category Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+          <div className="scroll-pills-row text-xs py-0.5">
             {categories.map((cat) => (
               <button
                 key={cat.key}
                 type="button"
                 onClick={() => setSelectedCategory(cat.key)}
-                className={`touch-target px-2.5 py-1 rounded-xl font-bold whitespace-nowrap transition-colors border ${
+                className={`shrink-0 touch-target px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border shadow-2xs ${
                   selectedCategory === cat.key
-                    ? 'bg-kirana-700 text-white border-kirana-700 shadow-2xs'
+                    ? 'bg-kirana-700 text-white border-kirana-700 shadow-kirana-700/20'
                     : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                 }`}
               >
